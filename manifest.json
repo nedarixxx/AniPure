@@ -1,0 +1,59 @@
+{
+  "manifest_version": 3,
+  "name": "AniPure — Нейросетевой видео-апскейлер",
+  "short_name": "AniPure",
+  "version": "0.1.1",
+  "description": "Реалтайм-улучшение 720p видео и аниме до Full HD/2K/4K на нейросетях Anime4K v4 CNN (WebGL2): лёгкий режим для ноутбуков и максимум для RTX.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "AniPure — Настройки улучшения",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "src/pages/onboarding.html",
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "cors_media_rules",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "all_frames": true,
+      "run_at": "document_idle",
+      "css": ["src/content/content.css"],
+      "js": [
+        "src/shared/config.js",
+        "src/shared/shaders.js",
+        "src/shaders/anime4k-models.js",
+        "src/engine/cnn-runner.js",
+        "src/engine/webgl-pipeline.js",
+        "src/content/content.js"
+      ]
+    }
+  ]
+}

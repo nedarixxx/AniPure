@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="amoled">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AniPure — Проверка видеокарты и настройки</title>
+  <link rel="stylesheet" href="onboarding.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M2.5 13.5V2.5H6M13.5 2.5V6M13.5 2.5H10M6.5 9.5L13.5 2.5"/>
+          </svg>
+        </div>
+        <div>
+          <span class="brand-name">AniPure</span>
+          <span class="brand-ver">v0.1.1</span>
+        </div>
+      </div>
+
+      <div class="theme-switch-group" role="group" aria-label="Тема оформления">
+        <button type="button" class="theme-opt active" data-theme-set="amoled">AMOLED</button>
+        <button type="button" class="theme-opt" data-theme-set="light">Светлая</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- GPU Benchmark Card -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h1 class="card-title">Проверка мощности видеокарты</h1>
+          <p class="card-desc">
+            Тест прогоняет реальные WebGL2-шейдеры на 720p кадре и измеряет время отрисовки, чтобы подобрать оптимальный пресет без тормозов.
+          </p>
+        </div>
+        <button type="button" class="btn" id="runBenchBtn">Запустить тест</button>
+      </div>
+
+      <div class="progress-wrap" id="progressWrap" style="display:none">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-label" id="progressLabel">Подготовка...</div>
+      </div>
+
+      <div id="benchResultArea" style="display:none">
+        <div class="gpu-info-bar">
+          <span class="gpu-name" id="gpuName">—</span>
+          <span class="gpu-class-badge" id="gpuClass">—</span>
+        </div>
+
+        <div class="metrics-grid" id="metricsGrid">
+          <div class="metric-cell" data-metric="fast">
+            <div class="metric-label">Быстро (Full HD)</div>
+            <div class="metric-value" id="scoreFast">—</div>
+            <div class="metric-sub">Базовая чёткость</div>
+          </div>
+          <div class="metric-cell" data-metric="balanced">
+            <div class="metric-label">Баланс (Full HD)</div>
+            <div class="metric-value" id="scoreBalanced">—</div>
+            <div class="metric-sub">Чёткие контуры</div>
+          </div>
+          <div class="metric-cell" data-metric="quality">
+            <div class="metric-label">Качество (2K)</div>
+            <div class="metric-value" id="scoreQuality">—</div>
+            <div class="metric-sub">Очистка и детали</div>
+          </div>
+          <div class="metric-cell" data-metric="ultra">
+            <div class="metric-label">Ультра (4K)</div>
+            <div class="metric-value" id="scoreUltra">—</div>
+            <div class="metric-sub">Максимум деталей</div>
+          </div>
+          <div class="metric-cell" data-metric="flow">
+            <div class="metric-label">Плавность 60 FPS</div>
+            <div class="metric-value" id="scoreFlow">—</div>
+            <div class="metric-sub">Доп. кадры</div>
+          </div>
+        </div>
+
+        <div class="rec-box">
+          <div>
+            <div class="rec-title" id="recTitle">Рекомендуемый пресет</div>
+            <div class="rec-details" id="recDetails"></div>
+          </div>
+          <button type="button" class="btn btn-primary" id="applyRecBtn">Применить пресет</button>
+        </div>
+        <div class="applied-note" id="appliedNote"></div>
+      </div>
+    </section>
+
+    <!-- Behavior & Advanced Settings -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Поведение и плавность видео</h2>
+          <p class="card-desc">Изменения сохраняются автоматически и сразу применяются ко всем открытым плеерам.</p>
+        </div>
+      </div>
+
+      <div class="settings-list">
+        <div class="setting-row">
+          <div>
+            <div class="setting-title">Кнопка управления поверх видеоплеера</div>
+            <div class="setting-sub">Показывает компактную панель включения и шторку «До / После» при наведении на видео</div>
+          </div>
+          <input type="checkbox" id="optPlayerBtn">
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <div class="setting-title">Защита от лагов</div>
+            <div class="setting-sub">Если видеокарта не успевает, расширение само снизит нагрузку, чтобы видео не тормозило</div>
+          </div>
+          <input type="checkbox" id="optAutoThrottle">
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <div class="setting-title">Защита от двоения на склейках (для 48 / 60 FPS)</div>
+            <div class="setting-sub">Отключает смешивание при резкой смене сцены в аниме (<span id="sceneCutVal">16%</span>)</div>
+          </div>
+          <input type="range" id="optSceneCut" min="8" max="35" step="1" style="width: 160px;">
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <div class="setting-title">Сила сглаживания движения (48 / 60 FPS)</div>
+            <div class="setting-sub">Насколько плавно дорисовывать движение между кадрами (<span id="flowStrVal">78%</span>)</div>
+          </div>
+          <input type="range" id="optFlowStr" min="30" max="100" step="1" style="width: 160px;">
+        </div>
+      </div>
+    </section>
+
+    <!-- Whitelist Management -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Белый список сайтов</h2>
+          <p class="card-desc">Когда белый список включён в окне расширения, улучшение запускается только на этих адресах.</p>
+        </div>
+        <button type="button" class="btn btn-sm" id="resetDefaultsBtn">Сбросить все настройки</button>
+      </div>
+
+      <div class="whitelist-items" id="whitelistContainer"></div>
+    </section>
+  </main>
+
+  <script src="../shared/config.js"></script>
+  <script src="../shared/shaders.js"></script>
+  <script src="../shaders/anime4k-models.js"></script>
+  <script src="../engine/cnn-runner.js"></script>
+  <script src="../engine/benchmark.js"></script>
+  <script src="onboarding.js"></script>
+</body>
+</html>

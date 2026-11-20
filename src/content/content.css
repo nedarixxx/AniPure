@@ -1,0 +1,185 @@
+.anipure-canvas,
+.lumascale-canvas {
+  position: absolute !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+  background: transparent !important;
+}
+
+.ls-hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.anipure-overlay-controls,
+.lumascale-overlay-controls {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 2147483640 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: opacity 0.22s ease, visibility 0.22s ease !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* Shown on mouse move, focus, or when directly hovered */
+.anipure-overlay-controls.ls-visible,
+.lumascale-overlay-controls.ls-visible,
+.anipure-overlay-controls:hover,
+.lumascale-overlay-controls:hover,
+.anipure-overlay-controls:focus-within,
+.lumascale-overlay-controls:focus-within {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Autohide when video player hides native controls (YouTube, VideoJS, standard players) */
+.ytp-autohide .anipure-overlay-controls:not(:hover),
+.ytp-autohide .lumascale-overlay-controls:not(:hover),
+.vjs-user-inactive .anipure-overlay-controls:not(:hover),
+.vjs-user-inactive .lumascale-overlay-controls:not(:hover),
+[data-autohide="true"] .anipure-overlay-controls:not(:hover),
+[data-autohide="true"] .lumascale-overlay-controls:not(:hover),
+.player-inactive .anipure-overlay-controls:not(:hover),
+.player-inactive .lumascale-overlay-controls:not(:hover) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.anipure-pill-btn,
+.lumascale-pill-btn {
+  appearance: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  background: rgba(12, 13, 16, 0.82) !important;
+  color: #e6e8ec !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  backdrop-filter: blur(6px) !important;
+  transition: background 0.15s ease, border-color 0.15s ease !important;
+}
+
+.anipure-pill-btn:hover,
+.lumascale-pill-btn:hover {
+  background: rgba(24, 26, 32, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.anipure-pill-btn.ls-active,
+.lumascale-pill-btn.ls-active {
+  background: rgba(12, 13, 16, 0.92) !important;
+  border-color: rgba(16, 185, 129, 0.85) !important;
+  color: #ffffff !important;
+}
+
+.anipure-hud,
+.lumascale-hud {
+  position: absolute !important;
+  top: 12px !important;
+  left: 12px !important;
+  z-index: 2147483640 !important;
+  background: rgba(8, 9, 12, 0.82) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #dfe3ea !important;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important;
+  font-size: 11px !important;
+  line-height: 1.45 !important;
+  padding: 6px 9px !important;
+  border-radius: 6px !important;
+  pointer-events: none !important;
+  white-space: nowrap !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+.anipure-split-handle,
+.lumascale-split-handle {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 24px !important;
+  margin-left: -12px !important;
+  z-index: 2147483641 !important;
+  cursor: ew-resize !important;
+  display: flex;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: auto !important;
+  user-select: none !important;
+}
+
+.anipure-split-handle::before,
+.lumascale-split-handle::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  width: 1px !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.8) !important;
+  pointer-events: none !important;
+}
+
+.anipure-split-knob,
+.lumascale-split-knob {
+  position: relative !important;
+  z-index: 1 !important;
+  width: 24px !important;
+  height: 36px !important;
+  border-radius: 6px !important;
+  background: rgba(10, 11, 14, 0.90) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 10px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55) !important;
+}
+
+.anipure-split-label,
+.lumascale-split-label {
+  position: absolute !important;
+  bottom: 52px !important;
+  padding: 3px 8px !important;
+  border-radius: 4px !important;
+  background: rgba(8, 9, 12, 0.80) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: #e6e8ec !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 11px !important;
+  pointer-events: none !important;
+  z-index: 2147483639 !important;
+}
+
+.anipure-toast,
+.lumascale-toast {
+  position: absolute !important;
+  bottom: 54px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 2147483642 !important;
+  background: rgba(12, 13, 16, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #f0f2f5 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 12px !important;
+  padding: 7px 12px !important;
+  border-radius: 6px !important;
+  pointer-events: none !important;
+}

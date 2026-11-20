@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="amoled">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AniPure</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="shell">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="brand-wrap">
+        <span class="brand-name">AniPure</span>
+        <span class="brand-ver">0.1.1</span>
+      </div>
+      <div class="topbar-right">
+        <button type="button" class="theme-btn" id="themeToggleBtn">Светлая</button>
+        <button type="button" class="power-btn on" id="powerToggleBtn">
+          <span class="power-dot"></span>
+          <span id="powerText">ВКЛ</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Live signal & quick split-screen bar -->
+    <div class="signal-strip">
+      <div class="signal-info">
+        <span class="signal-dot" id="telemetryDot"></span>
+        <span class="signal-text" id="telemetryText">Ожидание видеопотока...</span>
+      </div>
+      <button type="button" class="mini-toggle" id="quickSplitBtn">До / После</button>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs" role="tablist">
+      <button type="button" class="tab-btn active" data-tab="picture">Картинка</button>
+      <button type="button" class="tab-btn" data-tab="tune">Цвет и текст</button>
+      <button type="button" class="tab-btn" data-tab="sites">Сайты и ПК</button>
+    </nav>
+
+    <!-- Body -->
+    <main class="panel-body" id="mainContent">
+      <!-- TAB 1: Picture & Presets -->
+      <div class="tab-pane active" id="tab-picture">
+        <div>
+          <div class="field-head">
+            <span class="field-label">Нагрузка на видеокарту</span>
+            <span class="field-meta" id="gpuBadge"></span>
+          </div>
+          <div class="seg-rail seg-4" id="tierRail">
+            <button type="button" class="seg-btn" data-tier="fast">Быстро</button>
+            <button type="button" class="seg-btn" data-tier="balanced">Баланс</button>
+            <button type="button" class="seg-btn" data-tier="quality">Качество</button>
+            <button type="button" class="seg-btn" data-tier="ultra">Ультра</button>
+          </div>
+          <div class="sub-note" id="tierHint"></div>
+        </div>
+
+        <div>
+          <div class="field-head">
+            <span class="field-label">Алгоритм улучшения</span>
+          </div>
+          <div class="mode-list" id="modeList">
+            <button type="button" class="mode-item" data-mode="mode_gan">
+              <div class="mode-left">
+                <span class="mode-radio"></span>
+                <div>
+                  <div class="mode-name">GAN Максимум (4K детали)</div>
+                  <div class="mode-desc">Генеративная нейросеть: максимум чёткости волос и деталей</div>
+                </div>
+              </div>
+              <span class="mode-tag">GAN 2x</span>
+            </button>
+
+            <button type="button" class="mode-item" data-mode="mode_bb">
+              <div class="mode-left">
+                <span class="mode-radio"></span>
+                <div>
+                  <div class="mode-name">Чёткое аниме (B+B)</div>
+                  <div class="mode-desc">Глубокое восстановление линий без лишней жёсткости</div>
+                </div>
+              </div>
+              <span class="mode-tag">CNN VL</span>
+            </button>
+
+            <button type="button" class="mode-item" data-mode="mode_aa">
+              <div class="mode-left">
+                <span class="mode-radio"></span>
+                <div>
+                  <div class="mode-name">Максимум контуров (A+A)</div>
+                  <div class="mode-desc">Усиленная прорисовка размытых линий 720p</div>
+                </div>
+              </div>
+              <span class="mode-tag">GAN+VL</span>
+            </button>
+
+            <button type="button" class="mode-item" data-mode="mode_clean">
+              <div class="mode-left">
+                <span class="mode-radio"></span>
+                <div>
+                  <div class="mode-name">Очистка сжатия и шума</div>
+                  <div class="mode-desc">Убирает квадраты плохого битрейта и мыло</div>
+                </div>
+              </div>
+              <span class="mode-tag">Denoise</span>
+            </button>
+
+            <button type="button" class="mode-item" data-mode="mode_lite">
+              <div class="mode-left">
+                <span class="mode-radio"></span>
+                <div>
+                  <div class="mode-name">Лёгкая нейросеть</div>
+                  <div class="mode-desc">Оптимально для ноутбуков и встроенной графики</div>
+                </div>
+              </div>
+              <span class="mode-tag">CNN S</span>
+            </button>
+
+            <button type="button" class="mode-item" data-mode="eco_fast">
+              <div class="mode-left">
+                <span class="mode-radio"></span>
+                <div>
+                  <div class="mode-name">Экономный (без нейросети)</div>
+                  <div class="mode-desc">Почти нулевая нагрузка на старый ПК и батарею</div>
+                </div>
+              </div>
+              <span class="mode-tag">Eco</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="row-2col">
+          <div>
+            <div class="field-head"><span class="field-label">Разрешение</span></div>
+            <div class="seg-rail seg-4" id="resRail">
+              <button type="button" class="seg-btn" data-res="auto">Авто</button>
+              <button type="button" class="seg-btn" data-res="1080p">1080p</button>
+              <button type="button" class="seg-btn" data-res="1440p">2K</button>
+              <button type="button" class="seg-btn" data-res="2160p">4K</button>
+            </div>
+          </div>
+          <div>
+            <div class="field-head"><span class="field-label">Плавность</span></div>
+            <div class="seg-rail seg-3" id="interpRail">
+              <button type="button" class="seg-btn" data-interp="off">Авто</button>
+              <button type="button" class="seg-btn" data-interp="48">48</button>
+              <button type="button" class="seg-btn" data-interp="60">60</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Color Profiles & Fine Tuning -->
+      <div class="tab-pane" id="tab-tune">
+        <div>
+          <div class="field-head">
+            <span class="field-label">Цветовой профиль</span>
+          </div>
+          <div class="color-grid" id="colorGrid">
+            <button type="button" class="color-pill" data-color="natural">
+              <span class="color-swatch" style="background:#8a8d96"></span>
+              <span>Оригинал</span>
+            </button>
+            <button type="button" class="color-pill" data-color="bluray">
+              <span class="color-swatch" style="background:#5b8fd9"></span>
+              <span>Blu-ray</span>
+            </button>
+            <button type="button" class="color-pill" data-color="vivid">
+              <span class="color-swatch" style="background:#e0635a"></span>
+              <span>Сочный</span>
+            </button>
+            <button type="button" class="color-pill" data-color="warm_night">
+              <span class="color-swatch" style="background:#d99a4e"></span>
+              <span>Ночной</span>
+            </button>
+            <button type="button" class="color-pill" data-color="cinema">
+              <span class="color-swatch" style="background:#3e8e8b"></span>
+              <span>Кино</span>
+            </button>
+            <button type="button" class="color-pill" data-color="oled_deep">
+              <span class="color-swatch" style="background:#1c1e24"></span>
+              <span>OLED</span>
+            </button>
+          </div>
+          <div class="sub-note" id="colorProfileDesc"></div>
+        </div>
+
+        <div class="opt-card">
+          <label class="opt-row">
+            <span>Кнопка на плеере (автоскрытие)</span>
+            <input type="checkbox" id="optShowPlayerButton">
+          </label>
+          <label class="opt-row">
+            <span>Анти-вспышка (мягкий свет ночью)</span>
+            <input type="checkbox" id="optAntiFlash">
+          </label>
+          <label class="opt-row">
+            <span>Глубокий чёрный цвет</span>
+            <input type="checkbox" id="checkBlackFix">
+          </label>
+          <label class="opt-row">
+            <span>Показатели работы поверх видео</span>
+            <input type="checkbox" id="optHud">
+          </label>
+          <label class="opt-row">
+            <span>Защита от лагов на слабых ПК</span>
+            <input type="checkbox" id="optThrottle">
+          </label>
+        </div>
+
+        <div>
+          <div class="field-head">
+            <span class="field-label">Подстройка картинки</span>
+            <button type="button" class="link-btn" id="resetSlidersBtn">Сбросить</button>
+          </div>
+          <div class="slider-card">
+            <div class="slider-row">
+              <div class="slider-head">
+                <span>Дополнительная чёткость</span>
+                <span class="slider-val" id="valCas">36%</span>
+              </div>
+              <input type="range" id="rangeCas" min="0" max="100" step="1">
+            </div>
+
+            <div class="slider-row">
+              <div class="slider-head">
+                <span>Выразительность контуров</span>
+                <span class="slider-val" id="valLine">20%</span>
+              </div>
+              <input type="range" id="rangeLine" min="0" max="100" step="1">
+            </div>
+
+            <div class="slider-row">
+              <div class="slider-head">
+                <span>Защита от ореолов по краям</span>
+                <span class="slider-val" id="valDering">72%</span>
+              </div>
+              <input type="range" id="rangeDering" min="0" max="100" step="1">
+            </div>
+
+            <div class="slider-row">
+              <div class="slider-head">
+                <span>Сочность цветов</span>
+                <span class="slider-val" id="valVibrance">+5%</span>
+              </div>
+              <input type="range" id="rangeVibrance" min="-20" max="40" step="1">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Sites & Hardware -->
+      <div class="tab-pane" id="tab-sites">
+        <div>
+          <div class="field-head"><span class="field-label">Где работает расширение</span></div>
+          <div class="seg-rail seg-2" id="wlModeRail">
+            <button type="button" class="seg-btn" data-wl="all">На всех сайтах</button>
+            <button type="button" class="seg-btn" data-wl="only">Только из списка</button>
+          </div>
+        </div>
+
+        <div class="site-box">
+          <div class="site-host" id="currentSiteHost">Текущая вкладка</div>
+          <div class="btn-row-3">
+            <button type="button" class="flat-btn" id="wlAddDomain">+ Домен</button>
+            <button type="button" class="flat-btn" id="wlAddPage">+ Страница</button>
+            <button type="button" class="flat-btn" id="wlAddPath">+ Раздел</button>
+          </div>
+          <div class="sub-note" id="wlStatus"></div>
+          <div class="wl-list" id="wlList"></div>
+        </div>
+
+        <div class="gpu-card">
+          <div class="field-head" style="margin-bottom:0">
+            <span class="field-label">Ваша видеокарта</span>
+          </div>
+          <div class="gpu-line" id="gpuSummaryLine">Тест видеокарты ещё не запускался</div>
+          <button type="button" class="primary-flat-btn" id="openSettingsBtn">Открыть тест видеокарты и настройки</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../shared/config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
