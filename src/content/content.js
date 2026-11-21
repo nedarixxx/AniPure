@@ -2,6 +2,7 @@
   'use strict';
 
   const Config = window.AniPureConfig || window.LumaScaleConfig;
+  const I18n = window.AniPureI18n || window.LumaScaleI18n;
   const PipelineClass = window.WebGLVideoPipeline;
   if (!Config || !PipelineClass) return;
 
@@ -79,21 +80,22 @@
       }
 
       // Overlay controls on player
+      const lang = I18n ? I18n.resolveLanguage(currentSettings.language) : 'ru';
       this.controlsEl = document.createElement('div');
       this.controlsEl.className = 'anipure-overlay-controls lumascale-overlay-controls';
       this.controlsEl.innerHTML = `
-        <button type="button" class="anipure-pill-btn lumascale-pill-btn" data-act="toggle" title="Включить или выключить улучшение">
+        <button type="button" class="anipure-pill-btn lumascale-pill-btn" data-act="toggle" title="${I18n ? I18n.t('playerToggleTitle', lang) : 'Включить или выключить улучшение'}">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7">
             <path d="M2 14V2h4M14 2v4M14 2h-4M6 10l8-8"/>
           </svg>
-          <span class="ls-toggle-text">AniPure: ВЫКЛ</span>
+          <span class="ls-toggle-text">${I18n ? I18n.t('playerOff', lang) : 'AniPure: ВЫКЛ'}</span>
         </button>
-        <button type="button" class="anipure-pill-btn lumascale-pill-btn ls-hidden" data-act="split" title="Сравнение До / После">
+        <button type="button" class="anipure-pill-btn lumascale-pill-btn ls-hidden" data-act="split" title="${I18n ? I18n.t('playerSplitTitle', lang) : 'Сравнение До / После'}">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
             <rect x="2" y="3" width="12" height="10" rx="1.5"/>
             <line x1="8" y1="3" x2="8" y2="13"/>
           </svg>
-          <span>До / После</span>
+          <span>${I18n ? I18n.t('splitBtn', lang) : 'До / После'}</span>
         </button>
       `;
       (this.playerRoot || this.host).appendChild(this.controlsEl);
@@ -116,7 +118,7 @@
 
       this.splitLeftLabel = document.createElement('div');
       this.splitLeftLabel.className = 'anipure-split-label lumascale-split-label ls-hidden';
-      this.splitLeftLabel.textContent = 'Оригинал 720p';
+      this.splitLeftLabel.textContent = I18n ? I18n.t('origLabel', lang) : 'Оригинал 720p';
       this.splitLeftLabel.style.left = '12px';
       this.host.appendChild(this.splitLeftLabel);
 
@@ -388,22 +390,32 @@
       const shouldRun = Boolean(this.playerActive && currentSettings.enabled && allowed);
       this.active = shouldRun;
 
+      const lang = I18n ? I18n.resolveLanguage(currentSettings.language) : 'ru';
       this.controlsEl.classList.toggle('ls-hidden', !currentSettings.showPlayerButton);
       const toggleBtn = this.controlsEl.querySelector('[data-act="toggle"]');
       const splitBtn = this.controlsEl.querySelector('[data-act="split"]');
       toggleBtn.classList.toggle('ls-active', shouldRun);
-      toggleBtn.querySelector('.ls-toggle-text').textContent = shouldRun ? 'AniPure: ВКЛ' : 'AniPure: ВЫКЛ';
+      toggleBtn.title = I18n ? I18n.t('playerToggleTitle', lang) : 'Включить или выключить улучшение';
+      toggleBtn.querySelector('.ls-toggle-text').textContent = shouldRun
+        ? (I18n ? I18n.t('playerOn', lang) : 'AniPure: ВКЛ')
+        : (I18n ? I18n.t('playerOff', lang) : 'AniPure: ВЫКЛ');
 
       // The Before/After function must NOT appear in the player unless activated in settings first
       const splitAllowed = Boolean(shouldRun && currentSettings.splitScreen);
       splitBtn.classList.toggle('ls-hidden', !splitAllowed);
       splitBtn.classList.toggle('ls-active', splitAllowed);
+      splitBtn.title = I18n ? I18n.t('playerSplitTitle', lang) : 'Сравнение До / После';
+      const splitTextNode = splitBtn.querySelector('span');
+      if (splitTextNode) {
+        splitTextNode.textContent = I18n ? I18n.t('splitBtn', lang) : 'До / После';
+      }
 
       this.splitHandleEl.classList.toggle('ls-hidden', !splitAllowed);
       this.splitLeftLabel.classList.toggle('ls-hidden', !splitAllowed);
       this.splitRightLabel.classList.toggle('ls-hidden', !splitAllowed);
       this.hudEl.classList.toggle('ls-hidden', !(shouldRun && currentSettings.showHud));
 
+      this.splitLeftLabel.textContent = I18n ? I18n.t('origLabel', lang) : 'Оригинал 720p';
       const modeObj = Config.ENHANCEMENT_MODES[currentSettings.mode];
       this.splitRightLabel.textContent = modeObj ? modeObj.label : 'AniPure';
 
@@ -421,21 +433,26 @@
                 this.canvas.classList.add('ls-hidden');
                 if (!this.corsWarned) {
                   this.corsWarned = true;
-                  this._showToast('AniPure: видео защищено CORS/DRM на этом домене');
+                  this._showToast(I18n ? I18n.t('toastCors', lang) : 'AniPure: видео защищено CORS/DRM на этом домене');
                 }
               },
               onAutoThrottle: (info) => {
                 const patch = { tier: info.nextTier };
                 if (info.disableInterpolation) patch.interpolation = 'off';
                 const tierLabel = (Config.PERFORMANCE_TIERS[info.nextTier] || {}).label || info.nextTier;
-                this._showToast('Авто-оптимизация: переключено на «' + tierLabel + '» для плавности');
+                const tierName = I18n ? I18n.t('tier_' + info.nextTier, lang) : tierLabel;
+                this._showToast(I18n
+                  ? I18n.t('toastThrottle', lang, { tier: tierName })
+                  : ('Авто-оптимизация: переключено на «' + tierLabel + '» для плавности'));
                 savePartialSettings(patch);
               }
             });
             this.pipeline.start();
           } catch (err) {
             this.canvas.classList.add('ls-hidden');
-            this._showToast('AniPure: ошибка WebGL2 — ' + err.message);
+            this._showToast(I18n
+              ? I18n.t('toastWebglErr', lang, { err: err.message })
+              : ('AniPure: ошибка WebGL2 — ' + err.message));
           }
         } else {
           this.pipeline.updateSettings(currentSettings);
@@ -451,10 +468,12 @@
 
     _renderHud(t) {
       if (!this.hudEl || !t) return;
-      const tierLabel = (Config.PERFORMANCE_TIERS[t.tier] || {}).label || t.tier;
+      const lang = I18n ? I18n.resolveLanguage(currentSettings.language) : 'ru';
+      const tierLabel = I18n ? I18n.t('tier_' + t.tier, lang) : ((Config.PERFORMANCE_TIERS[t.tier] || {}).label || t.tier);
       const flowTag = t.interpolation && t.interpolation !== 'off' ? ` | ${t.interpolation} FPS` : '';
-      const fpsText = t.paused ? 'Пауза' : `${t.outputFps} FPS`;
-      const msText = t.renderMs < 0.1 ? '< 0.1 мс' : `${t.renderMs.toFixed(1)} мс`;
+      const fpsText = t.paused ? (I18n ? I18n.t('hudPause', lang) : 'Пауза') : `${t.outputFps} FPS`;
+      const msSuffix = lang === 'ru' ? ' мс' : ' ms';
+      const msText = t.renderMs < 0.1 ? (lang === 'ru' ? '< 0.1 мс' : '< 0.1 ms') : `${t.renderMs.toFixed(1)}${msSuffix}`;
       this.hudEl.textContent = `${t.srcWidth}x${t.srcHeight} -> ${t.outWidth}x${t.outHeight} | ${msText} | ${fpsText} | ${tierLabel}${flowTag}`;
     }
 

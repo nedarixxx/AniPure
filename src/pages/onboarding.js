@@ -3,6 +3,7 @@
 
   const Config = window.AniPureConfig || window.LumaScaleConfig;
   const Benchmark = window.AniPureBenchmark || window.LumaScaleBenchmark;
+  const I18n = window.AniPureI18n || window.LumaScaleI18n;
   const hasChrome = typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local;
 
   let settings = Config.mergeSettings(null);
@@ -56,6 +57,11 @@
   }
 
   function renderSettings() {
+    const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
+    if (I18n && typeof I18n.applyTranslations === 'function') {
+      I18n.applyTranslations(document, lang);
+    }
+
     const theme = settings.theme === 'light' ? 'light' : 'amoled';
     els.html.setAttribute('data-theme', theme);
     els.themeBtns.forEach(btn => {
@@ -77,16 +83,21 @@
   }
 
   function renderWhitelist() {
+    const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
     els.whitelistContainer.innerHTML = '';
     if (!settings.whitelist || settings.whitelist.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'empty-state';
-      empty.textContent = 'Список пока пуст. Добавьте нужный сайт через всплывающее окно расширения.';
+      empty.textContent = I18n ? I18n.t('obEmptyWl', lang) : 'Список пока пуст.';
       els.whitelistContainer.appendChild(empty);
       return;
     }
 
-    const typeLabels = { page: 'Страница', domain: 'Домен', path: 'Раздел' };
+    const typeLabels = lang === 'ru'
+      ? { page: 'Страница', domain: 'Домен', path: 'Раздел' }
+      : { page: 'Page', domain: 'Domain', path: 'Path' };
+    const delText = lang === 'ru' ? 'Удалить' : 'Delete';
+
     settings.whitelist.forEach((item, idx) => {
       const row = document.createElement('div');
       row.className = 'wl-item';
@@ -94,7 +105,7 @@
         <div class="wl-item-val">
           <span class="wl-type">[${typeLabels[item.type] || item.type}]</span>${escapeHtml(item.value)}
         </div>
-        <button type="button" class="btn btn-sm" data-remove-idx="${idx}">Удалить</button>
+        <button type="button" class="btn btn-sm" data-remove-idx="${idx}">${delText}</button>
       `;
       row.querySelector('[data-remove-idx]').addEventListener('click', () => {
         const next = settings.whitelist.filter((_, i) => i !== idx);
@@ -113,31 +124,34 @@
   function renderBenchmarkResult(res) {
     if (!res) return;
     lastBenchResult = res;
+    const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
+    const msSuffix = lang === 'ru' ? ' мс' : ' ms';
+
     els.benchResultArea.style.display = 'block';
     els.gpuName.textContent = res.renderer || 'WebGL2 GPU';
-    els.gpuClass.textContent = res.gpuClass || 'Определено';
+    els.gpuClass.textContent = (res.gpuClassKey && I18n)
+      ? I18n.t(res.gpuClassKey, lang)
+      : (res.gpuClass || 'GPU');
 
-    els.scoreFast.textContent = res.scores.fastMs + ' мс';
-    els.scoreBalanced.textContent = res.scores.balancedMs + ' мс';
-    els.scoreQuality.textContent = res.scores.qualityMs + ' мс';
-    els.scoreUltra.textContent = res.scores.ultraMs + ' мс';
-    els.scoreFlow.textContent = res.scores.flowMs + ' мс';
+    els.scoreFast.textContent = res.scores.fastMs + msSuffix;
+    els.scoreBalanced.textContent = res.scores.balancedMs + msSuffix;
+    els.scoreQuality.textContent = res.scores.qualityMs + msSuffix;
+    els.scoreUltra.textContent = res.scores.ultraMs + msSuffix;
+    els.scoreFlow.textContent = res.scores.flowMs + msSuffix;
 
     els.metricsGrid.querySelectorAll('.metric-cell').forEach(cell => {
       cell.classList.toggle('recommended', cell.dataset.metric === res.recommendedTier);
     });
 
-    const tierObj = Config.PERFORMANCE_TIERS[res.recommendedTier] || Config.PERFORMANCE_TIERS.balanced;
-    const modeObj = Config.ENHANCEMENT_MODES[res.recommendedMode] || Config.ENHANCEMENT_MODES.anime_crisp;
-    const resObj = Config.OUTPUT_RESOLUTIONS[res.recommendedResolution] || Config.OUTPUT_RESOLUTIONS['1080p'];
-    const interpObj = Config.INTERPOLATION_MODES[res.recommendedInterpolation] || Config.INTERPOLATION_MODES.off;
-
-    els.recTitle.textContent = `Оптимальный профиль: ${tierObj.label}`;
-    els.recDetails.textContent = `Режим: ${modeObj.label} · Разрешение: ${resObj.label} · Интерполяция: ${interpObj.label}`;
+    const tierName = I18n ? I18n.t('tier_' + res.recommendedTier, lang) : res.recommendedTier;
+    const recDetailsKey = 'recDetails_' + res.recommendedTier;
+    els.recTitle.textContent = (lang === 'ru' ? 'Оптимальный профиль: ' : 'Recommended Profile: ') + tierName;
+    els.recDetails.textContent = I18n ? I18n.t(recDetailsKey, lang) : '';
   }
 
   function applyRecommendedPreset(silent) {
     if (!lastBenchResult) return;
+    const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
     const modeObj = Config.ENHANCEMENT_MODES[lastBenchResult.recommendedMode];
     persist({
       tier: lastBenchResult.recommendedTier,
@@ -149,13 +163,16 @@
       onboardingDone: true
     });
     if (!silent) {
-      els.appliedNote.textContent = 'Рекомендуемый пресет сохранён и применён. Можете открыть любой плеер и проверить результат.';
+      els.appliedNote.textContent = I18n
+        ? I18n.t('obAppliedNote', lang)
+        : 'Рекомендуемый пресет сохранён и применён.';
     }
   }
 
   async function executeBenchmark(autoApplyOnFirstRun) {
+    const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
     els.runBenchBtn.disabled = true;
-    els.runBenchBtn.textContent = 'Идёт проверка...';
+    els.runBenchBtn.textContent = lang === 'ru' ? 'Идёт проверка...' : 'Benchmarking...';
     els.progressWrap.style.display = 'block';
     els.progressFill.style.width = '5%';
     els.appliedNote.textContent = '';
@@ -168,7 +185,7 @@
       });
 
       els.progressFill.style.width = '100%';
-      els.progressLabel.textContent = 'Проверка видеокарты завершена.';
+      els.progressLabel.textContent = lang === 'ru' ? 'Проверка видеокарты завершена.' : 'GPU benchmark complete.';
       renderBenchmarkResult(result);
 
       if (autoApplyOnFirstRun) {
@@ -177,10 +194,10 @@
         persist({ gpuProfile: result, onboardingDone: true });
       }
     } catch (err) {
-      els.progressLabel.textContent = 'Ошибка тестирования: ' + err.message;
+      els.progressLabel.textContent = (lang === 'ru' ? 'Ошибка тестирования: ' : 'Benchmark error: ') + err.message;
     } finally {
       els.runBenchBtn.disabled = false;
-      els.runBenchBtn.textContent = 'Запустить тест заново';
+      els.runBenchBtn.textContent = lang === 'ru' ? 'Запустить тест заново' : 'Run Benchmark Again';
     }
   }
 
@@ -211,8 +228,9 @@
     });
 
     els.resetDefaultsBtn.addEventListener('click', () => {
+      const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
       persist({ ...Config.DEFAULT_SETTINGS, gpuProfile: settings.gpuProfile, onboardingDone: true });
-      els.appliedNote.textContent = 'Настройки сброшены на значения по умолчанию.';
+      els.appliedNote.textContent = I18n ? I18n.t('obResetNote', lang) : 'Настройки сброшены.';
     });
   }
 
@@ -224,7 +242,6 @@
       if (settings.gpuProfile) {
         renderBenchmarkResult(settings.gpuProfile);
       }
-      // First install -> automatically benchmark GPU and select best preset!
       if (!settings.onboardingDone) {
         executeBenchmark(true);
       }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AniPure — Проверка видеокарты и настройки</title>
+  <title>AniPure</title>
   <link rel="stylesheet" href="onboarding.css">
 </head>
 <body>
@@ -21,9 +21,9 @@
         </div>
       </div>
 
-      <div class="theme-switch-group" role="group" aria-label="Тема оформления">
+      <div class="theme-switch-group" role="group" aria-label="Theme">
         <button type="button" class="theme-opt active" data-theme-set="amoled">AMOLED</button>
-        <button type="button" class="theme-opt" data-theme-set="light">Светлая</button>
+        <button type="button" class="theme-opt" data-theme-set="light">Light</button>
       </div>
     </div>
   </header>
@@ -33,12 +33,12 @@
     <section class="card">
       <div class="card-header">
         <div>
-          <h1 class="card-title">Проверка мощности видеокарты</h1>
-          <p class="card-desc">
+          <h1 class="card-title" data-i18n="obTitle">Проверка мощности видеокарты</h1>
+          <p class="card-desc" data-i18n="obSubtitle">
             Тест прогоняет реальные WebGL2-шейдеры на 720p кадре и измеряет время отрисовки, чтобы подобрать оптимальный пресет без тормозов.
           </p>
         </div>
-        <button type="button" class="btn" id="runBenchBtn">Запустить тест</button>
+        <button type="button" class="btn" id="runBenchBtn" data-i18n="obRunBench">Запустить тест</button>
       </div>
 
       <div class="progress-wrap" id="progressWrap" style="display:none">
@@ -56,38 +56,38 @@
 
         <div class="metrics-grid" id="metricsGrid">
           <div class="metric-cell" data-metric="fast">
-            <div class="metric-label">Быстро (Full HD)</div>
+            <div class="metric-label" data-i18n="obFastLabel">Быстро (Full HD)</div>
             <div class="metric-value" id="scoreFast">—</div>
-            <div class="metric-sub">Базовая чёткость</div>
+            <div class="metric-sub" data-i18n="tierHint_fast">Базовая чёткость</div>
           </div>
           <div class="metric-cell" data-metric="balanced">
-            <div class="metric-label">Баланс (Full HD)</div>
+            <div class="metric-label" data-i18n="obBalancedLabel">Баланс (Full HD)</div>
             <div class="metric-value" id="scoreBalanced">—</div>
-            <div class="metric-sub">Чёткие контуры</div>
+            <div class="metric-sub" data-i18n="tierHint_balanced">Чёткие контуры</div>
           </div>
           <div class="metric-cell" data-metric="quality">
-            <div class="metric-label">Качество (2K)</div>
+            <div class="metric-label" data-i18n="obQualityLabel">Качество (2K)</div>
             <div class="metric-value" id="scoreQuality">—</div>
-            <div class="metric-sub">Очистка и детали</div>
+            <div class="metric-sub" data-i18n="tierHint_quality">Очистка и детали</div>
           </div>
           <div class="metric-cell" data-metric="ultra">
-            <div class="metric-label">Ультра (4K)</div>
+            <div class="metric-label" data-i18n="obUltraLabel">Ультра (4K)</div>
             <div class="metric-value" id="scoreUltra">—</div>
-            <div class="metric-sub">Максимум деталей</div>
+            <div class="metric-sub" data-i18n="tierHint_ultra">Максимум деталей</div>
           </div>
           <div class="metric-cell" data-metric="flow">
-            <div class="metric-label">Плавность 60 FPS</div>
+            <div class="metric-label" data-i18n="obFlowLabel">Плавность 60 FPS</div>
             <div class="metric-value" id="scoreFlow">—</div>
-            <div class="metric-sub">Доп. кадры</div>
+            <div class="metric-sub" data-i18n="interpHint">Доп. кадры</div>
           </div>
         </div>
 
         <div class="rec-box">
           <div>
-            <div class="rec-title" id="recTitle">Рекомендуемый пресет</div>
+            <div class="rec-title" id="recTitle" data-i18n="obRecTitle">Рекомендуемый пресет</div>
             <div class="rec-details" id="recDetails"></div>
           </div>
-          <button type="button" class="btn btn-primary" id="applyRecBtn">Применить пресет</button>
+          <button type="button" class="btn btn-primary" id="applyRecBtn" data-i18n="obApply">Применить пресет</button>
         </div>
         <div class="applied-note" id="appliedNote"></div>
       </div>
@@ -97,40 +97,40 @@
     <section class="card">
       <div class="card-header">
         <div>
-          <h2 class="card-title">Поведение и плавность видео</h2>
-          <p class="card-desc">Изменения сохраняются автоматически и сразу применяются ко всем открытым плеерам.</p>
+          <h2 class="card-title" data-i18n="obAdvTitle">Поведение и плавность видео</h2>
+          <p class="card-desc" data-i18n="obAdvDesc">Изменения сохраняются автоматически и сразу применяются ко всем открытым плеерам.</p>
         </div>
       </div>
 
       <div class="settings-list">
         <div class="setting-row">
           <div>
-            <div class="setting-title">Кнопка управления поверх видеоплеера</div>
-            <div class="setting-sub">Показывает компактную панель включения и шторку «До / После» при наведении на видео</div>
+            <div class="setting-title" data-i18n="obOptPlayerBtnTitle">Кнопка управления поверх видеоплеера</div>
+            <div class="setting-sub" data-i18n="obOptPlayerBtnSub">Показывает компактную панель включения и шторку «До / После» при наведении на видео</div>
           </div>
           <input type="checkbox" id="optPlayerBtn">
         </div>
 
         <div class="setting-row">
           <div>
-            <div class="setting-title">Защита от лагов</div>
-            <div class="setting-sub">Если видеокарта не успевает, расширение само снизит нагрузку, чтобы видео не тормозило</div>
+            <div class="setting-title" data-i18n="obOptThrottleTitle">Защита от лагов</div>
+            <div class="setting-sub" data-i18n="obOptThrottleSub">Если видеокарта не успевает, расширение само снизит нагрузку, чтобы видео не тормозило</div>
           </div>
           <input type="checkbox" id="optAutoThrottle">
         </div>
 
         <div class="setting-row">
           <div>
-            <div class="setting-title">Защита от двоения на склейках (для 48 / 60 FPS)</div>
-            <div class="setting-sub">Отключает смешивание при резкой смене сцены в аниме (<span id="sceneCutVal">16%</span>)</div>
+            <div class="setting-title" data-i18n="obOptSceneCutTitle">Защита от двоения на склейках (для 48 / 60 FPS)</div>
+            <div class="setting-sub"><span data-i18n="obOptSceneCutSub">Отключает смешивание при резкой смене сцены в аниме</span> (<span id="sceneCutVal">16%</span>)</div>
           </div>
           <input type="range" id="optSceneCut" min="8" max="35" step="1" style="width: 160px;">
         </div>
 
         <div class="setting-row">
           <div>
-            <div class="setting-title">Сила сглаживания движения (48 / 60 FPS)</div>
-            <div class="setting-sub">Насколько плавно дорисовывать движение между кадрами (<span id="flowStrVal">78%</span>)</div>
+            <div class="setting-title" data-i18n="obOptFlowStrTitle">Сила сглаживания движения (48 / 60 FPS)</div>
+            <div class="setting-sub"><span data-i18n="obOptFlowStrSub">Насколько плавно дорисовывать движение между кадрами</span> (<span id="flowStrVal">78%</span>)</div>
           </div>
           <input type="range" id="optFlowStr" min="30" max="100" step="1" style="width: 160px;">
         </div>
@@ -141,16 +141,17 @@
     <section class="card">
       <div class="card-header">
         <div>
-          <h2 class="card-title">Белый список сайтов</h2>
-          <p class="card-desc">Когда белый список включён в окне расширения, улучшение запускается только на этих адресах.</p>
+          <h2 class="card-title" data-i18n="obWlTitle">Белый список сайтов</h2>
+          <p class="card-desc" data-i18n="obWlDesc">Когда белый список включён в окне расширения, улучшение запускается только на этих адресах.</p>
         </div>
-        <button type="button" class="btn btn-sm" id="resetDefaultsBtn">Сбросить все настройки</button>
+        <button type="button" class="btn btn-sm" id="resetDefaultsBtn" data-i18n="obResetBtn">Сбросить все настройки</button>
       </div>
 
       <div class="whitelist-items" id="whitelistContainer"></div>
     </section>
   </main>
 
+  <script src="../shared/i18n.js"></script>
   <script src="../shared/config.js"></script>
   <script src="../shared/shaders.js"></script>
   <script src="../shaders/anime4k-models.js"></script>

@@ -47,6 +47,7 @@
       "run_at": "document_idle",
       "css": ["src/content/content.css"],
       "js": [
+        "src/shared/i18n.js",
         "src/shared/config.js",
         "src/shared/shaders.js",
         "src/shaders/anime4k-models.js",

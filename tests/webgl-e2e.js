@@ -227,7 +227,7 @@ async function run() {
     }
 
     console.log('[E2E 2/3] Benchmark result:', benchRes);
-    if (!benchRes || !benchRes.fast.includes('мс') || !benchRes.flow.includes('мс')) {
+    if (!benchRes || (!benchRes.fast.includes('мс') && !benchRes.fast.includes('ms')) || (!benchRes.flow.includes('мс') && !benchRes.flow.includes('ms'))) {
       throw new Error('GPU Benchmark did not produce valid ms measurements');
     }
 
@@ -380,7 +380,10 @@ async function run() {
     if (videoCheck.overlayCheck.postLeaveOpacity !== '0') {
       throw new Error('Overlay controls failed to autohide on mouseleave: ' + JSON.stringify(videoCheck.overlayCheck));
     }
-    if (videoCheck.overlayCheck.textBeforeClick !== 'AniPure: ВКЛ' || videoCheck.overlayCheck.textAfterClick !== 'AniPure: ВЫКЛ' || videoCheck.overlayCheck.textRestored !== 'AniPure: ВКЛ') {
+    const isRu = videoCheck.overlayCheck.textBeforeClick.includes('ВКЛ');
+    const expectedBefore = isRu ? 'AniPure: ВКЛ' : 'AniPure: ON';
+    const expectedAfter = isRu ? 'AniPure: ВЫКЛ' : 'AniPure: OFF';
+    if (videoCheck.overlayCheck.textBeforeClick !== expectedBefore || videoCheck.overlayCheck.textAfterClick !== expectedAfter || videoCheck.overlayCheck.textRestored !== expectedBefore) {
       throw new Error('Overlay toggle button click test failed: ' + JSON.stringify(videoCheck.overlayCheck));
     }
     if (videoCheck.overlayCheck.postClickLeaveOpacity !== '0') {
