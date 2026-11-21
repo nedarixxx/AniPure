@@ -125,4 +125,39 @@ test('AniPure v0.1.1 Core & Anime4K CNN Unit Tests', async (t) => {
     assert.ok(Shaders.LUMA_FUSED_FRAG_SHADER.includes('applyColorProfile'));
     assert.ok(Shaders.LUMA_FUSED_FRAG_SHADER.includes('applyAntiFlash'));
   });
+
+  await t.test('TC-09: Internationalization (i18n) auto-detection, priority resolution & dictionary translation', () => {
+    const I18n = require('../src/shared/i18n.js');
+    assert.ok(I18n);
+
+    // Direct manual override
+    assert.equal(I18n.resolveLanguage('ru'), 'ru');
+    assert.equal(I18n.resolveLanguage('en'), 'en');
+
+    // Auto-detection rules:
+    // Russian, Belarusian, Ukrainian resolve to 'ru'.
+    // All other browser locales (e.g. German, French, Spanish, Japanese, English) default to 'en' priority language.
+    assert.equal(I18n.resolveLanguage('auto', 'de-DE'), 'en');
+    assert.equal(I18n.resolveLanguage('auto', 'fr-FR'), 'en');
+    assert.equal(I18n.resolveLanguage('auto', 'ja-JP'), 'en');
+    assert.equal(I18n.resolveLanguage('auto', 'es-ES'), 'en');
+    assert.equal(I18n.resolveLanguage('auto', 'en-US'), 'en');
+
+    assert.equal(I18n.resolveLanguage('auto', 'ru-RU'), 'ru');
+    assert.equal(I18n.resolveLanguage('auto', 'uk-UA'), 'ru');
+    assert.equal(I18n.resolveLanguage('auto', 'be-BY'), 'ru');
+
+    // Translations and parameter interpolation
+    assert.equal(I18n.t('playerOn', 'en'), 'AniPure: ON');
+    assert.equal(I18n.t('playerOn', 'ru'), 'AniPure: ВКЛ');
+    assert.equal(I18n.t('toastThrottle', 'en', { tier: 'Balanced' }), 'Auto-optimization: switched to "Balanced" for smooth playback');
+    assert.equal(I18n.t('toastThrottle', 'ru', { tier: 'Баланс' }), 'Авто-оптимизация: переключено на «Баланс» для плавности');
+
+    // Benchmark classification with English and Russian locales
+    const rtxRu = Config.classifyBenchmarkResult({ ultraMs: 15 }, 'ru');
+    assert.ok(rtxRu.gpuClass.includes('Мощная'));
+
+    const rtxEn = Config.classifyBenchmarkResult({ ultraMs: 15 }, 'en');
+    assert.ok(rtxEn.gpuClass.includes('High-Performance'));
+  });
 });

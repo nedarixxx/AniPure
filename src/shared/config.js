@@ -1,6 +1,16 @@
 (function (root) {
   'use strict';
 
+  let I18n = null;
+  if (typeof require !== 'undefined') {
+    try {
+      I18n = require('./i18n.js');
+    } catch (_) {}
+  }
+  if (!I18n && typeof globalThis !== 'undefined' && globalThis.AniPureI18n) {
+    I18n = globalThis.AniPureI18n;
+  }
+
   const APP_META = {
     name: 'AniPure',
     version: '0.1.1'
@@ -252,6 +262,7 @@
 
   const DEFAULT_SETTINGS = {
     enabled: true,
+    language: 'auto',
     theme: 'amoled',
     tier: 'balanced',
     mode: 'mode_lite',
@@ -297,6 +308,10 @@
       whitelist: Array.isArray(src.whitelist) ? src.whitelist : []
     };
     if (merged.resolution === '2x') merged.resolution = '1440p';
+    const validLanguages = ['auto', 'en', 'ru'];
+    if (!validLanguages.includes(merged.language)) {
+      merged.language = 'auto';
+    }
     if (merged.mode === 'anime4k_ultra' || merged.mode === 'restore_deep') merged.mode = 'mode_gan';
     if (merged.mode === 'anime4k_fast' || merged.mode === 'soft_cel') merged.mode = 'mode_lite';
     if (merged.mode === 'deblock_clean') merged.mode = 'mode_clean';
@@ -410,7 +425,7 @@
     }
   }
 
-  function classifyBenchmarkResult(scores) {
+  function classifyBenchmarkResult(scores, langSetting) {
     const ultraMs = Number(scores.ultraMs || 999);
     const qualityMs = Number(scores.qualityMs || 999);
     const balancedMs = Number(scores.balancedMs || 999);
@@ -420,7 +435,7 @@
     let recommendedMode = 'eco_fast';
     let recommendedResolution = '1080p';
     let recommendedInterpolation = 'off';
-    let gpuClass = 'Базовая / встроенная графика';
+    let gpuClassKey = 'gpuClass_fast';
 
     // RTX 3060 / 4060 / 4070+ handle full GAN + VL Ultra smoothly within 24 FPS budget (41.6ms)
     if (ultraMs <= 34) {
@@ -428,26 +443,32 @@
       recommendedMode = 'mode_gan';
       recommendedResolution = '1440p';
       recommendedInterpolation = flowMs <= 14 ? '60' : 'off';
-      gpuClass = 'Мощная видеокарта (уровень RTX 3060 / 4060 / 4070+)';
+      gpuClassKey = 'gpuClass_ultra';
     } else if (qualityMs <= 30) {
       recommendedTier = 'quality';
       recommendedMode = 'mode_bb';
       recommendedResolution = '1440p';
       recommendedInterpolation = flowMs <= 14 ? '48' : 'off';
-      gpuClass = 'Средняя дискретная видеокарта';
+      gpuClassKey = 'gpuClass_quality';
     } else if (balancedMs <= 30) {
       recommendedTier = 'balanced';
       recommendedMode = 'mode_lite';
       recommendedResolution = '1080p';
       recommendedInterpolation = 'off';
-      gpuClass = 'Встроенная графика / ноутбук';
+      gpuClassKey = 'gpuClass_balanced';
     } else {
       recommendedTier = 'fast';
       recommendedMode = 'eco_fast';
       recommendedResolution = '1080p';
       recommendedInterpolation = 'off';
-      gpuClass = 'Энергоэффективная / слабая графика';
+      gpuClassKey = 'gpuClass_fast';
     }
+
+    const gpuClass = (I18n && typeof I18n.t === 'function')
+      ? I18n.t(gpuClassKey, langSetting)
+      : (gpuClassKey === 'gpuClass_ultra' ? 'Мощная видеокарта (уровень RTX 3060 / 4060 / 4070+)' :
+         gpuClassKey === 'gpuClass_quality' ? 'Средняя дискретная видеокарта' :
+         gpuClassKey === 'gpuClass_balanced' ? 'Встроенная графика / ноутбук' : 'Энергоэффективная / слабая графика');
 
     return {
       recommendedTier,
@@ -455,6 +476,7 @@
       recommendedResolution,
       recommendedInterpolation,
       gpuClass,
+      gpuClassKey,
       canInterpolate: flowMs <= 14
     };
   }
@@ -480,6 +502,7 @@
 
   const api = {
     APP_META,
+    I18n,
     PERFORMANCE_TIERS,
     ENHANCEMENT_MODES,
     OUTPUT_RESOLUTIONS,
