@@ -365,6 +365,7 @@ uniform float uBlackLevelFix;
 uniform float uVibrance;
 uniform float uColorProfile;
 uniform float uAntiFlash;
+uniform float uVignette;
 uniform float uSplitScreen;
 uniform float uSplitPos;
 
@@ -465,6 +466,14 @@ vec3 applyAntiFlash(vec3 c) {
   return c;
 }
 
+vec3 applyVignette(vec3 c, vec2 uv, float amt) {
+  if (amt < 0.005) return c;
+  vec2 d = abs(uv - 0.5) * 1.414;
+  float dist = dot(d, d);
+  float vig = clamp(1.0 - dist * amt * 0.85, 0.0, 1.0);
+  return c * vig;
+}
+
 void main() {
   // Split screen before/after comparison (raw original video on the left)
   if (uSplitScreen > 0.5 && vUv.x < uSplitPos) {
@@ -519,6 +528,11 @@ void main() {
     }
 
     cnn = applyAntiFlash(cnn);
+
+    if (uVignette > 0.005) {
+      cnn = applyVignette(cnn, vScreenUv, uVignette);
+    }
+
     fragColor = vec4(cnn, 1.0);
     return;
   }
@@ -609,6 +623,11 @@ void main() {
   }
 
   enhanced = applyAntiFlash(enhanced);
+
+  if (uVignette > 0.005) {
+    enhanced = applyVignette(enhanced, vScreenUv, uVignette);
+  }
+
   fragColor = vec4(enhanced, 1.0);
 }
 `;

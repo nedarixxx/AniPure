@@ -103,6 +103,7 @@
       sliderLine: 'Line Refinement (CNN)',
       sliderDering: 'Deringing / Denoise',
       sliderVibrance: 'Dynamic Vibrance',
+      sliderVignette: 'Vignette',
 
       // Language & Whitelist
       langTitle: 'Language / Язык',
@@ -130,11 +131,18 @@
       playerOff: 'AniPure: OFF',
       splitBtn: 'Before / After',
       origLabel: 'Original 720p',
+      screenshotBtn: 'Screenshot',
+      screenshotTitle: 'Clean 4K/2K Screenshot ({key})',
+      hotkeyTitle: 'Screenshot Hotkey',
+      hotkeyHint: 'Click and press keys to customize (default: Alt+S)',
+      hotkeyListening: 'Press shortcut...',
       playerToggleTitle: 'Toggle AniPure enhancement on this player',
       playerSplitTitle: 'Before / After comparison split-screen',
       toastCors: 'AniPure: video is protected by CORS/DRM on this domain',
       toastWebglErr: 'AniPure: WebGL2 error — {err}',
       toastThrottle: 'Auto-optimization: switched to "{tier}" for smooth playback',
+      toastShotSaved: 'AniPure: screenshot saved ({res})',
+      toastShotNotReady: 'AniPure: video stream is not active',
       hudPause: 'Paused',
 
       // Onboarding & Diagnostics
@@ -266,6 +274,7 @@
       sliderLine: 'Чёткость линий (CNN)',
       sliderDering: 'Устранение артефактов',
       sliderVibrance: 'Динамическая сочность',
+      sliderVignette: 'Виньетирование',
 
       // Language & Whitelist
       langTitle: 'Язык интерфейса',
@@ -293,11 +302,18 @@
       playerOff: 'AniPure: ВЫКЛ',
       splitBtn: 'До / После',
       origLabel: 'Оригинал 720p',
+      screenshotBtn: 'Снимок',
+      screenshotTitle: 'Чистый 4K/2K скриншот ({key})',
+      hotkeyTitle: 'Горячая клавиша скриншота',
+      hotkeyHint: 'Кликните и нажмите нужные клавиши (по умолчанию Alt+S)',
+      hotkeyListening: 'Нажмите комбинацию...',
       playerToggleTitle: 'Включить или выключить улучшение на этом плеере',
       playerSplitTitle: 'Сравнение До / После (интерактивная шторка)',
       toastCors: 'AniPure: видео защищено CORS/DRM на этом домене',
       toastWebglErr: 'AniPure: ошибка WebGL2 — {err}',
       toastThrottle: 'Авто-оптимизация: переключено на «{tier}» для плавности',
+      toastShotSaved: 'AniPure: скриншот сохранён ({res})',
+      toastShotNotReady: 'AniPure: видеопоток не активен',
       hudPause: 'Пауза',
 
       // Onboarding & Diagnostics

@@ -38,11 +38,16 @@
     rangeLine: document.getElementById('rangeLine'),
     rangeDering: document.getElementById('rangeDering'),
     rangeVibrance: document.getElementById('rangeVibrance'),
+    rangeVignette: document.getElementById('rangeVignette'),
     valCas: document.getElementById('valCas'),
     valLine: document.getElementById('valLine'),
     valDering: document.getElementById('valDering'),
     valVibrance: document.getElementById('valVibrance'),
+    valVignette: document.getElementById('valVignette'),
     langRail: document.getElementById('langRail'),
+    hotkeyScreenshotInput: document.getElementById('hotkeyScreenshotInput'),
+    resetHotkeyBtn: document.getElementById('resetHotkeyBtn'),
+    hotkeyHint: document.getElementById('hotkeyHint'),
     wlModeRail: document.getElementById('wlModeRail'),
     currentSiteHost: document.getElementById('currentSiteHost'),
     wlAddDomain: document.getElementById('wlAddDomain'),
@@ -174,6 +179,9 @@
     els.valDering.textContent = deringPct + '%';
     els.rangeVibrance.value = vibPct;
     els.valVibrance.textContent = (vibPct > 0 ? '+' : '') + vibPct + '%';
+    const vigPct = Math.round((settings.vignette || 0) * 100);
+    if (els.rangeVignette) els.rangeVignette.value = vigPct;
+    if (els.valVignette) els.valVignette.textContent = vigPct + '%';
     els.checkBlackFix.checked = Boolean(activeParams.blackLevelFix);
 
     // Tab 3 Language selector
@@ -181,6 +189,10 @@
       els.langRail.querySelectorAll('.seg-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === (settings.language || 'auto'));
       });
+    }
+
+    if (els.hotkeyScreenshotInput && !els.hotkeyScreenshotInput.classList.contains('recording')) {
+      els.hotkeyScreenshotInput.value = settings.hotkeyScreenshot || 'Alt+S';
     }
 
     // Tab 3 Whitelist
@@ -351,6 +363,12 @@
     bindSlider(els.rangeDering, 'deringStrength', 100);
     bindSlider(els.rangeVibrance, 'vibrance', 100);
 
+    if (els.rangeVignette) {
+      els.rangeVignette.addEventListener('input', () => {
+        persist({ vignette: Number(els.rangeVignette.value) / 100 });
+      });
+    }
+
     els.checkBlackFix.addEventListener('change', () => {
       const base = settings.mode === 'custom'
         ? settings.customParams
@@ -369,6 +387,7 @@
         mode: defMode,
         colorProfile: 'bluray',
         antiFlash: false,
+        vignette: 0.0,
         customParams: m && m.params ? { ...m.params } : Config.DEFAULT_SETTINGS.customParams
       });
     });
@@ -379,6 +398,62 @@
         btn.addEventListener('click', () => {
           persist({ language: btn.dataset.lang });
         });
+      });
+    }
+
+    // Tab 3 Screenshot Hotkey Recorder
+    if (els.hotkeyScreenshotInput) {
+      els.hotkeyScreenshotInput.addEventListener('focus', () => {
+        const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
+        els.hotkeyScreenshotInput.classList.add('recording');
+        els.hotkeyScreenshotInput.value = I18n ? I18n.t('hotkeyListening', lang) : 'Нажмите комбинацию...';
+      });
+
+      els.hotkeyScreenshotInput.addEventListener('blur', () => {
+        els.hotkeyScreenshotInput.classList.remove('recording');
+        els.hotkeyScreenshotInput.value = settings.hotkeyScreenshot || 'Alt+S';
+      });
+
+      els.hotkeyScreenshotInput.addEventListener('keydown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const parts = [];
+        if (e.ctrlKey) parts.push('Ctrl');
+        if (e.altKey) parts.push('Alt');
+        if (e.shiftKey) parts.push('Shift');
+        if (e.metaKey) parts.push('Meta');
+        
+        let k = '';
+        if (e.code && e.code.startsWith('Key')) {
+          k = e.code.slice(3).toUpperCase();
+        } else if (e.code && e.code.startsWith('Digit')) {
+          k = e.code.slice(5);
+        } else if (e.code && e.code.startsWith('F') && /^F\d+$/.test(e.code)) {
+          k = e.code;
+        } else if (e.code === 'Space' || e.key === ' ') {
+          k = 'Space';
+        } else {
+          const cyr = {
+            'й':'Q','ц':'W','у':'E','к':'R','е':'T','н':'Y','г':'U','ш':'I','щ':'O','з':'P',
+            'ф':'A','ы':'S','в':'D','а':'F','п':'G','р':'H','о':'J','л':'K','д':'L',
+            'я':'Z','ч':'X','с':'C','м':'V','и':'B','т':'N','ь':'M'
+          };
+          const raw = (e.key || '').toLowerCase();
+          k = cyr[raw] || (e.key && e.key.length === 1 ? e.key.toUpperCase() : e.key);
+        }
+
+        if (!k || ['Control', 'Alt', 'Shift', 'Meta'].includes(k)) return;
+        parts.push(k);
+        const combo = parts.join('+');
+        persist({ hotkeyScreenshot: combo });
+        els.hotkeyScreenshotInput.value = combo;
+        els.hotkeyScreenshotInput.blur();
+      });
+    }
+
+    if (els.resetHotkeyBtn) {
+      els.resetHotkeyBtn.addEventListener('click', () => {
+        persist({ hotkeyScreenshot: 'Alt+S' });
       });
     }
 

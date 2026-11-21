@@ -55,7 +55,7 @@
         antialias: false,
         depth: false,
         stencil: false,
-        preserveDrawingBuffer: false,
+        preserveDrawingBuffer: true,
         desynchronized: true,
         powerPreference: (tier === 'ultra' || tier === 'quality') ? 'high-performance' : 'default'
       });
@@ -190,6 +190,19 @@
       if (this._captureNewVideoFrame(performance.now())) {
         this.renderFrame(1.0, false);
       }
+    }
+
+    captureCleanScreenshot() {
+      if (!this.gl || this.destroyed || !this.hasPrevFrame || this.corsBlocked) {
+        return Promise.reject(new Error('Видеопоток недоступен'));
+      }
+      this.renderFrame(1.0, false);
+      return new Promise((resolve, reject) => {
+        this.canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Не удалось сформировать изображение'));
+        }, 'image/png');
+      });
     }
 
     updateSettings(newSettings) {
@@ -426,6 +439,7 @@
       gl.uniform1f(gl.getUniformLocation(fProg, 'uVibrance'), eff.vibrance);
       gl.uniform1f(gl.getUniformLocation(fProg, 'uColorProfile'), eff.colorProfileIndex);
       gl.uniform1f(gl.getUniformLocation(fProg, 'uAntiFlash'), eff.antiFlash ? 1.0 : 0.0);
+      gl.uniform1f(gl.getUniformLocation(fProg, 'uVignette'), eff.vignette || 0.0);
       gl.uniform1f(gl.getUniformLocation(fProg, 'uSplitScreen'), this.settings.splitScreen ? 1.0 : 0.0);
       gl.uniform1f(gl.getUniformLocation(fProg, 'uSplitPos'), this.settings.splitPosition);
 

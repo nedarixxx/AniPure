@@ -10,7 +10,7 @@ const Shaders = require('../src/shared/shaders.js');
 const Models = require('../src/shaders/anime4k-models.js');
 const CnnRunner = require('../src/engine/cnn-runner.js');
 
-test('AniPure v0.1.1 Core & Anime4K CNN Unit Tests', async (t) => {
+test('AniPure v0.1.2 Core & Anime4K CNN Unit Tests', async (t) => {
   await t.test('TC-01: Manifest V3 structure, rules.json (CORS) and all files exist', () => {
     const rootDir = path.resolve(__dirname, '..');
     const manifest = JSON.parse(fs.readFileSync(path.join(rootDir, 'manifest.json'), 'utf8'));
@@ -124,6 +124,9 @@ test('AniPure v0.1.1 Core & Anime4K CNN Unit Tests', async (t) => {
     assert.equal(cinema.antiFlash, true);
     assert.ok(Shaders.LUMA_FUSED_FRAG_SHADER.includes('applyColorProfile'));
     assert.ok(Shaders.LUMA_FUSED_FRAG_SHADER.includes('applyAntiFlash'));
+    assert.ok(Shaders.LUMA_FUSED_FRAG_SHADER.includes('applyVignette'));
+    const vig = Config.resolveEffectiveParams({ vignette: 0.35 });
+    assert.equal(vig.vignette, 0.35);
   });
 
   await t.test('TC-09: Internationalization (i18n) auto-detection, priority resolution & dictionary translation', () => {
@@ -159,5 +162,28 @@ test('AniPure v0.1.1 Core & Anime4K CNN Unit Tests', async (t) => {
 
     const rtxEn = Config.classifyBenchmarkResult({ ultraMs: 15 }, 'en');
     assert.ok(rtxEn.gpuClass.includes('High-Performance'));
+  });
+
+  await t.test('TC-10: Clean frame screenshot hotkey & independent vignette settings validation', () => {
+    assert.equal(Config.DEFAULT_SETTINGS.hotkeyScreenshot, 'Alt+S');
+    assert.equal(Config.DEFAULT_SETTINGS.vignette, 0.0);
+
+    const merged = Config.mergeSettings({
+      hotkeyScreenshot: 'Alt+Shift+S',
+      vignette: 0.4
+    });
+    assert.equal(merged.hotkeyScreenshot, 'Alt+Shift+S');
+    assert.equal(merged.vignette, 0.4);
+
+    // Empty or invalid hotkey falls back safely to Alt+S
+    const fallback = Config.mergeSettings({ hotkeyScreenshot: '   ' });
+    assert.equal(fallback.hotkeyScreenshot, 'Alt+S');
+
+    // Vignette remains independent across mode switches
+    const paramsGan = Config.resolveEffectiveParams({ mode: 'mode_gan', vignette: 0.25 });
+    assert.equal(paramsGan.vignette, 0.25);
+
+    const paramsEco = Config.resolveEffectiveParams({ mode: 'eco_fast', vignette: 0.25 });
+    assert.equal(paramsEco.vignette, 0.25);
   });
 });
