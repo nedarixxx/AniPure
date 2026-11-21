@@ -241,7 +241,7 @@ async function run() {
       const api = window.LumaScaleContentApi;
       if (!api) return { error: 'Content API missing' };
 
-      // 1) Verify split-handle is strictly HIDDEN when splitScreen is false!
+      // 1) Verify split-handle and split button are strictly HIDDEN when splitScreen is false!
       api.applySettings({
         ...api.getSettings(),
         enabled: true,
@@ -256,8 +256,11 @@ async function run() {
       await new Promise(r => setTimeout(r, 1400));
       const handle = document.querySelector('.lumascale-split-handle');
       const handleWhenSplitOff = handle ? getComputedStyle(handle).display : 'missing';
+      const controls = document.querySelector('.anipure-overlay-controls, .lumascale-overlay-controls');
+      const splitBtn = controls ? controls.querySelector('[data-act="split"]') : null;
+      const splitBtnWhenSplitOff = splitBtn ? getComputedStyle(splitBtn).display : 'missing';
 
-      // 2) Turn split-screen ON and verify handle appears
+      // 2) Turn split-screen ON and verify handle and split button appear
       api.applySettings({
         ...api.getSettings(),
         splitScreen: true,
@@ -265,26 +268,33 @@ async function run() {
       });
       await new Promise(r => setTimeout(r, 700));
       const handleWhenSplitOn = handle ? getComputedStyle(handle).display : 'missing';
+      const splitBtnWhenSplitOn = splitBtn ? getComputedStyle(splitBtn).display : 'missing';
       const t = api.getTelemetry();
       const canvas = document.querySelector('.lumascale-canvas');
       const displayWhenOn = canvas ? getComputedStyle(canvas).display : 'missing';
 
-      const controls = document.querySelector('.anipure-overlay-controls, .lumascale-overlay-controls');
       const toggleText = controls ? controls.querySelector('.ls-toggle-text').textContent : '';
       const initialOpacity = controls ? getComputedStyle(controls).opacity : '';
       const initialVisibility = controls ? getComputedStyle(controls).visibility : '';
 
-      // Test mouse movement triggers visibility and mouseleave hides it
+      // Test corner hover hotspot triggers visibility and lingers for 1s before smooth fade-out
       const host = document.querySelector('.anipure-host, .lumascale-host');
       const classBefore = controls ? controls.className : 'no-ctrl';
-      if (host) host.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
+      const hostRect = host ? host.getBoundingClientRect() : { right: 800, top: 0, width: 800, height: 450 };
+      if (host) {
+        host.dispatchEvent(new MouseEvent('mousemove', {
+          bubbles: true,
+          clientX: hostRect.right - 20,
+          clientY: hostRect.top + 20
+        }));
+      }
       const classAfter = controls ? controls.className : 'no-ctrl';
       await new Promise(r => setTimeout(r, 260));
       const activeOpacity = controls ? getComputedStyle(controls).opacity : '';
 
       if (host) host.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
       const classAfterLeave = controls ? controls.className : 'no-ctrl';
-      await new Promise(r => setTimeout(r, 260));
+      await new Promise(r => setTimeout(r, 1400));
       const postLeaveOpacity = controls ? getComputedStyle(controls).opacity : '';
 
       // Test interactive button clicks directly on the player
@@ -295,9 +305,16 @@ async function run() {
       if (toggleBtn) toggleBtn.click(); // restore
       const textRestored = toggleBtn ? toggleBtn.querySelector('.ls-toggle-text').textContent : '';
 
+      // Test that clicking toggle button does NOT leave controls stuck visible after mouse leaves!
+      if (host) host.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 1400));
+      const postClickLeaveOpacity = controls ? getComputedStyle(controls).opacity : '';
+
       return {
         handleWhenSplitOff,
         handleWhenSplitOn,
+        splitBtnWhenSplitOff,
+        splitBtnWhenSplitOn,
         displayWhenOn,
         canvasW: canvas ? canvas.width : 0,
         canvasH: canvas ? canvas.height : 0,
@@ -311,6 +328,7 @@ async function run() {
           initialVisibility,
           activeOpacity,
           postLeaveOpacity,
+          postClickLeaveOpacity,
           textBeforeClick,
           textAfterClick,
           textRestored
@@ -344,8 +362,14 @@ async function run() {
     if (videoCheck.handleWhenSplitOff !== 'none') {
       throw new Error('Split handle was stuck visible when splitScreen=false: ' + videoCheck.handleWhenSplitOff);
     }
+    if (videoCheck.splitBtnWhenSplitOff !== 'none') {
+      throw new Error('Split button was visible when splitScreen=false: ' + videoCheck.splitBtnWhenSplitOff);
+    }
     if (videoCheck.handleWhenSplitOn === 'none') {
       throw new Error('Split handle failed to appear when splitScreen=true');
+    }
+    if (videoCheck.splitBtnWhenSplitOn === 'none') {
+      throw new Error('Split button failed to appear when splitScreen=true');
     }
     if (!videoCheck.overlayCheck || !videoCheck.overlayCheck.toggleText.includes('AniPure')) {
       throw new Error('Overlay toggle button text does not contain AniPure: ' + JSON.stringify(videoCheck.overlayCheck));
@@ -358,6 +382,9 @@ async function run() {
     }
     if (videoCheck.overlayCheck.textBeforeClick !== 'AniPure: ВКЛ' || videoCheck.overlayCheck.textAfterClick !== 'AniPure: ВЫКЛ' || videoCheck.overlayCheck.textRestored !== 'AniPure: ВКЛ') {
       throw new Error('Overlay toggle button click test failed: ' + JSON.stringify(videoCheck.overlayCheck));
+    }
+    if (videoCheck.overlayCheck.postClickLeaveOpacity !== '0') {
+      throw new Error('Controls remained stuck visible after clicking toggle: ' + JSON.stringify(videoCheck.overlayCheck));
     }
     if (videoCheck.displayWhenOn === 'none' || videoCheck.canvasW < 1920) {
       throw new Error('WebGL2 Anime4K canvas did not upscale properly: ' + JSON.stringify(videoCheck));

@@ -30,6 +30,7 @@
     constructor(video) {
       this.video = video;
       this.host = video.parentElement;
+      this.playerRoot = video.closest('.html5-video-player, [class*="player"], .video-js') || this.host;
       this.pipeline = null;
       this.canvas = null;
       this.controlsEl = null;
@@ -41,9 +42,12 @@
       this.resizeObserver = null;
       this.lastTelemetry = null;
       this.active = false;
+      this.playerActive = false;
       this.corsWarned = false;
       this._overlayHideTimer = null;
-      this._playerObserver = null;
+      this._isPointerOverControls = false;
+      this._isPointerInHotspot = false;
+      this._moveTargets = [];
 
       if (!this.host) return;
 
@@ -52,6 +56,13 @@
         this.host.style.position = 'relative';
       }
       this.host.classList.add('anipure-host', 'lumascale-host');
+
+      if (this.playerRoot && this.playerRoot !== this.host) {
+        const rootStyle = window.getComputedStyle(this.playerRoot);
+        if (rootStyle.position === 'static') {
+          this.playerRoot.style.position = 'relative';
+        }
+      }
 
       this._createElements();
       this._bindEvents();
@@ -75,9 +86,9 @@
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7">
             <path d="M2 14V2h4M14 2v4M14 2h-4M6 10l8-8"/>
           </svg>
-          <span class="ls-toggle-text">AniPure</span>
+          <span class="ls-toggle-text">AniPure: ВЫКЛ</span>
         </button>
-        <button type="button" class="anipure-pill-btn lumascale-pill-btn" data-act="split" title="Сравнение До / После">
+        <button type="button" class="anipure-pill-btn lumascale-pill-btn ls-hidden" data-act="split" title="Сравнение До / После">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
             <rect x="2" y="3" width="12" height="10" rx="1.5"/>
             <line x1="8" y1="3" x2="8" y2="13"/>
@@ -85,11 +96,11 @@
           <span>До / После</span>
         </button>
       `;
-      this.host.appendChild(this.controlsEl);
+      (this.playerRoot || this.host).appendChild(this.controlsEl);
 
       this.hudEl = document.createElement('div');
       this.hudEl.className = 'anipure-hud lumascale-hud ls-hidden';
-      this.host.appendChild(this.hudEl);
+      (this.playerRoot || this.host).appendChild(this.hudEl);
 
       // Draggable split-screen divider (strictly hidden unless splitScreen is ON)
       this.splitHandleEl = document.createElement('div');
@@ -128,13 +139,18 @@
       toggleBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();
-        savePartialSettings({ enabled: !currentSettings.enabled });
+        if (typeof toggleBtn.blur === 'function') toggleBtn.blur();
+        this.playerActive = !this.playerActive;
+        this._updatePlayerState();
+        if (this.controlsEl) this.controlsEl.classList.add('ls-visible');
       });
 
       splitBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();
+        if (typeof splitBtn.blur === 'function') splitBtn.blur();
         savePartialSettings({ splitScreen: !currentSettings.splitScreen });
+        if (this.controlsEl) this.controlsEl.classList.add('ls-visible');
       });
 
       // Drag split-screen handle
@@ -166,9 +182,11 @@
       });
 
       // Sync canvas geometry whenever video resizes or enters fullscreen
-      this.resizeObserver = new ResizeObserver(() => this._syncGeometry());
-      this.resizeObserver.observe(this.video);
-      this.resizeObserver.observe(this.host);
+      if (typeof ResizeObserver !== 'undefined') {
+        this.resizeObserver = new ResizeObserver(() => this._syncGeometry());
+        this.resizeObserver.observe(this.video);
+        this.resizeObserver.observe(this.host);
+      }
 
       this.video.addEventListener('loadedmetadata', () => this._syncGeometry());
       this.video.addEventListener('play', () => {
@@ -184,52 +202,110 @@
         setTimeout(() => this._syncGeometry(), 80);
       });
 
-      // Smart auto-hide for overlay pill controls:
-      // Show controls when mouse moves or enters host, hide automatically after 2.5s of inactivity
-      const resetOverlayTimer = () => {
-        if (!this.controlsEl) return;
-        this.controlsEl.classList.add('ls-visible');
-        clearTimeout(this._overlayHideTimer);
-        this._overlayHideTimer = setTimeout(() => {
-          if (this.controlsEl && !this.controlsEl.matches(':hover') && !this.controlsEl.matches(':focus-within')) {
-            this.controlsEl.classList.remove('ls-visible');
-          }
-        }, 2500);
-      };
-
-      const hideOverlayImmediate = () => {
-        clearTimeout(this._overlayHideTimer);
-        if (this.controlsEl && !this.controlsEl.matches(':hover') && !this.controlsEl.matches(':focus-within')) {
-          this.controlsEl.classList.remove('ls-visible');
-        }
-      };
-
+      // Direct hover on controls: stays visible while hovering, cancels any hide timer
       this.controlsEl.addEventListener('mouseenter', () => {
-        clearTimeout(this._overlayHideTimer);
+        this._isPointerOverControls = true;
+        this._cancelHideTimer();
+        this.controlsEl.classList.add('ls-visible');
+      });
+      this.controlsEl.addEventListener('mousemove', (e) => {
+        e.stopPropagation();
+        this._isPointerOverControls = true;
+        this._cancelHideTimer();
         this.controlsEl.classList.add('ls-visible');
       });
       this.controlsEl.addEventListener('mouseleave', () => {
-        resetOverlayTimer();
+        this._isPointerOverControls = false;
+        this._checkPointerLeave();
       });
 
-      this.host.addEventListener('mousemove', resetOverlayTimer, { passive: true });
-      this.host.addEventListener('mouseenter', resetOverlayTimer, { passive: true });
-      this.host.addEventListener('pointermove', resetOverlayTimer, { passive: true });
-      this.host.addEventListener('mouseleave', hideOverlayImmediate, { passive: true });
+      // Corner trigger detection on player:
+      // When cursor hovers over the top-right area where AniPure is located, show it.
+      // While pointer is in the hotspot or over buttons, it stays visible indefinitely.
+      // When pointer leaves, it smoothly hides after exactly 1 second.
+      const handlePlayerMove = (e) => {
+        if (this._isPointerOverControls) {
+          this._cancelHideTimer();
+          return;
+        }
+        const root = this.playerRoot || this.host;
+        if (!root || !this.controlsEl) return;
+        const rect = root.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
 
-      // Observe player control autohide classes (e.g. YouTube ytp-autohide, VideoJS vjs-user-inactive, etc.)
-      const playerAncestor = this.host.closest('.html5-video-player, .vjs-user-inactive, [class*="player"]') || this.host;
-      if (playerAncestor && typeof MutationObserver !== 'undefined') {
-        try {
-          this._playerObserver = new MutationObserver(() => {
-            const cls = (playerAncestor.className || '') + ' ' + (this.host.className || '');
-            if (cls.includes('ytp-autohide') || cls.includes('vjs-user-inactive') || cls.includes('autohide') || cls.includes('hide-controls')) {
-              hideOverlayImmediate();
-            }
-          });
-          this._playerObserver.observe(playerAncestor, { attributes: true, attributeFilter: ['class'] });
-        } catch (_) {}
+        const inCornerZone = (e.clientX >= rect.right - 240) &&
+                             (e.clientX <= rect.right + 10) &&
+                             (e.clientY >= rect.top - 10) &&
+                             (e.clientY <= rect.top + 60);
+
+        if (inCornerZone) {
+          this._isPointerInHotspot = true;
+          this._cancelHideTimer();
+          this.controlsEl.classList.add('ls-visible');
+        } else {
+          if (this._isPointerInHotspot) {
+            this._isPointerInHotspot = false;
+            this._checkPointerLeave();
+          }
+        }
+      };
+
+      const handlePlayerLeave = () => {
+        this._isPointerInHotspot = false;
+        this._checkPointerLeave();
+      };
+
+      const targets = new Set([this.playerRoot, this.host].filter(Boolean));
+      this._moveTargets = Array.from(targets);
+      this._moveTargets.forEach(el => {
+        el.addEventListener('mousemove', handlePlayerMove, { passive: true });
+        el.addEventListener('pointermove', handlePlayerMove, { passive: true });
+        el.addEventListener('mouseleave', handlePlayerLeave, { passive: true });
+      });
+
+      document.addEventListener('mouseleave', () => {
+        this._isPointerOverControls = false;
+        this._isPointerInHotspot = false;
+        this._checkPointerLeave();
+      });
+    }
+
+    _cancelHideTimer() {
+      if (this._overlayHideTimer) {
+        clearTimeout(this._overlayHideTimer);
+        this._overlayHideTimer = null;
       }
+    }
+
+    _checkPointerLeave() {
+      if (this._isPointerOverControls || this._isPointerInHotspot) {
+        return;
+      }
+      this._scheduleHideOverlay(1000);
+    }
+
+    _showOverlay() {
+      if (!this.controlsEl) return;
+      this.controlsEl.classList.add('ls-visible');
+    }
+
+    _scheduleHideOverlay(delay = 1000) {
+      if (this._isPointerOverControls || this._isPointerInHotspot) {
+        return;
+      }
+      this._cancelHideTimer();
+      this._overlayHideTimer = setTimeout(() => {
+        if (this._isPointerOverControls || this._isPointerInHotspot) {
+          return;
+        }
+        if (this.controlsEl && this.controlsEl.matches(':hover')) {
+          return;
+        }
+        if (this.controlsEl) {
+          this.controlsEl.classList.remove('ls-visible');
+        }
+        this._overlayHideTimer = null;
+      }, delay);
     }
 
     _syncGeometry() {
@@ -299,25 +375,36 @@
     }
 
     applySettings(settings) {
-      const allowed = isAllowedOnThisPage(settings);
-      const shouldRun = Boolean(settings.enabled && allowed);
+      currentSettings = settings;
+      // In demo / test-bench mode, settings.enabled directly controls playerActive for automated testing
+      if (!isExtensionContextValid() && typeof settings.enabled === 'boolean') {
+        this.playerActive = Boolean(settings.enabled);
+      }
+      this._updatePlayerState();
+    }
+
+    _updatePlayerState() {
+      const allowed = isAllowedOnThisPage(currentSettings);
+      const shouldRun = Boolean(this.playerActive && currentSettings.enabled && allowed);
       this.active = shouldRun;
 
-      this.controlsEl.classList.toggle('ls-hidden', !settings.showPlayerButton);
+      this.controlsEl.classList.toggle('ls-hidden', !currentSettings.showPlayerButton);
       const toggleBtn = this.controlsEl.querySelector('[data-act="toggle"]');
       const splitBtn = this.controlsEl.querySelector('[data-act="split"]');
       toggleBtn.classList.toggle('ls-active', shouldRun);
       toggleBtn.querySelector('.ls-toggle-text').textContent = shouldRun ? 'AniPure: ВКЛ' : 'AniPure: ВЫКЛ';
-      splitBtn.classList.toggle('ls-active', shouldRun && settings.splitScreen);
-      splitBtn.classList.toggle('ls-hidden', !shouldRun);
 
-      const showSplit = shouldRun && Boolean(settings.splitScreen);
-      this.splitHandleEl.classList.toggle('ls-hidden', !showSplit);
-      this.splitLeftLabel.classList.toggle('ls-hidden', !showSplit);
-      this.splitRightLabel.classList.toggle('ls-hidden', !showSplit);
-      this.hudEl.classList.toggle('ls-hidden', !(shouldRun && settings.showHud));
+      // The Before/After function must NOT appear in the player unless activated in settings first
+      const splitAllowed = Boolean(shouldRun && currentSettings.splitScreen);
+      splitBtn.classList.toggle('ls-hidden', !splitAllowed);
+      splitBtn.classList.toggle('ls-active', splitAllowed);
 
-      const modeObj = Config.ENHANCEMENT_MODES[settings.mode];
+      this.splitHandleEl.classList.toggle('ls-hidden', !splitAllowed);
+      this.splitLeftLabel.classList.toggle('ls-hidden', !splitAllowed);
+      this.splitRightLabel.classList.toggle('ls-hidden', !splitAllowed);
+      this.hudEl.classList.toggle('ls-hidden', !(shouldRun && currentSettings.showHud));
+
+      const modeObj = Config.ENHANCEMENT_MODES[currentSettings.mode];
       this.splitRightLabel.textContent = modeObj ? modeObj.label : 'AniPure';
 
       if (shouldRun) {
@@ -325,7 +412,7 @@
         this.canvas.classList.remove('ls-hidden');
         if (!this.pipeline) {
           try {
-            this.pipeline = new PipelineClass(this.video, this.canvas, settings, {
+            this.pipeline = new PipelineClass(this.video, this.canvas, currentSettings, {
               onTelemetry: (t) => {
                 this.lastTelemetry = t;
                 this._renderHud(t);
@@ -351,7 +438,7 @@
             this._showToast('AniPure: ошибка WebGL2 — ' + err.message);
           }
         } else {
-          this.pipeline.updateSettings(settings);
+          this.pipeline.updateSettings(currentSettings);
           this.pipeline.start();
         }
       } else {
@@ -372,8 +459,7 @@
     }
 
     destroy() {
-      if (this._overlayHideTimer) clearTimeout(this._overlayHideTimer);
-      if (this._playerObserver) this._playerObserver.disconnect();
+      this._cancelHideTimer();
       if (this.resizeObserver) this.resizeObserver.disconnect();
       if (this.pipeline) this.pipeline.destroy();
       [this.canvas, this.controlsEl, this.hudEl, this.splitHandleEl, this.splitLeftLabel, this.splitRightLabel, this.toastEl]

@@ -6,7 +6,10 @@
   background: transparent !important;
 }
 
-.ls-hidden {
+.ls-hidden,
+*.ls-hidden,
+.anipure-pill-btn.ls-hidden,
+.lumascale-pill-btn.ls-hidden {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
@@ -18,7 +21,7 @@
   position: absolute !important;
   top: 12px !important;
   right: 12px !important;
-  z-index: 2147483640 !important;
+  z-index: 2147483647 !important;
   display: flex !important;
   align-items: center !important;
   gap: 6px !important;
@@ -29,30 +32,12 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 }
 
-/* Shown on mouse move, focus, or when directly hovered */
+/* Shown when visible via corner hover or interaction */
 .anipure-overlay-controls.ls-visible,
-.lumascale-overlay-controls.ls-visible,
-.anipure-overlay-controls:hover,
-.lumascale-overlay-controls:hover,
-.anipure-overlay-controls:focus-within,
-.lumascale-overlay-controls:focus-within {
+.lumascale-overlay-controls.ls-visible {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;
-}
-
-/* Autohide when video player hides native controls (YouTube, VideoJS, standard players) */
-.ytp-autohide .anipure-overlay-controls:not(:hover),
-.ytp-autohide .lumascale-overlay-controls:not(:hover),
-.vjs-user-inactive .anipure-overlay-controls:not(:hover),
-.vjs-user-inactive .lumascale-overlay-controls:not(:hover),
-[data-autohide="true"] .anipure-overlay-controls:not(:hover),
-[data-autohide="true"] .lumascale-overlay-controls:not(:hover),
-.player-inactive .anipure-overlay-controls:not(:hover),
-.player-inactive .lumascale-overlay-controls:not(:hover) {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
 }
 
 .anipure-pill-btn,
@@ -181,5 +166,16 @@
   font-size: 12px !important;
   padding: 7px 12px !important;
   border-radius: 6px !important;
+  pointer-events: none !important;
+}
+
+/* Guard: ensure hidden elements are always display none */
+.ls-hidden,
+*.ls-hidden,
+.anipure-pill-btn.ls-hidden,
+.lumascale-pill-btn.ls-hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
   pointer-events: none !important;
 }

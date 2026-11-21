@@ -27,6 +27,7 @@
     colorGrid: document.getElementById('colorGrid'),
     colorProfileDesc: document.getElementById('colorProfileDesc'),
     optShowPlayerButton: document.getElementById('optShowPlayerButton'),
+    optSplitScreen: document.getElementById('optSplitScreen'),
     optAntiFlash: document.getElementById('optAntiFlash'),
     optHud: document.getElementById('optHud'),
     optThrottle: document.getElementById('optThrottle'),
@@ -135,6 +136,9 @@
 
     if (els.optShowPlayerButton) {
       els.optShowPlayerButton.checked = settings.showPlayerButton !== false;
+    }
+    if (els.optSplitScreen) {
+      els.optSplitScreen.checked = Boolean(settings.splitScreen);
     }
     els.optAntiFlash.checked = settings.antiFlash;
     els.optHud.checked = settings.showHud;
@@ -298,6 +302,9 @@
 
     if (els.optShowPlayerButton) {
       els.optShowPlayerButton.addEventListener('change', () => persist({ showPlayerButton: els.optShowPlayerButton.checked }));
+    }
+    if (els.optSplitScreen) {
+      els.optSplitScreen.addEventListener('change', () => persist({ splitScreen: els.optSplitScreen.checked }));
     }
     els.optAntiFlash.addEventListener('change', () => persist({ antiFlash: els.optAntiFlash.checked }));
     els.optHud.addEventListener('change', () => persist({ showHud: els.optHud.checked }));
