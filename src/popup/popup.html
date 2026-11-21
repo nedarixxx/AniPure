@@ -12,7 +12,7 @@
     <header class="topbar">
       <div class="brand-wrap">
         <span class="brand-name" data-i18n="brandShort">AniPure</span>
-        <span class="brand-ver">0.1.1</span>
+        <span class="brand-ver">0.1.2</span>
       </div>
       <div class="topbar-right">
         <button type="button" class="theme-btn" id="themeToggleBtn" data-i18n="themeLight">Светлая</button>
@@ -250,6 +250,14 @@
               </div>
               <input type="range" id="rangeVibrance" min="-20" max="40" step="1">
             </div>
+
+            <div class="slider-row">
+              <div class="slider-head">
+                <span data-i18n="sliderVignette">Виньетирование</span>
+                <span class="slider-val" id="valVignette">0%</span>
+              </div>
+              <input type="range" id="rangeVignette" min="0" max="100" step="1">
+            </div>
           </div>
         </div>
       </div>
@@ -262,6 +270,17 @@
             <button type="button" class="seg-btn" data-lang="auto" data-i18n="lang_auto">Авто</button>
             <button type="button" class="seg-btn" data-lang="en" data-i18n="lang_en">English</button>
             <button type="button" class="seg-btn" data-lang="ru" data-i18n="lang_ru">Русский</button>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="field-head">
+            <span class="field-label" data-i18n="hotkeyTitle">Горячая клавиша скриншота</span>
+            <button type="button" class="link-btn" id="resetHotkeyBtn" data-i18n="reset">Сбросить</button>
+          </div>
+          <div class="hotkey-box">
+            <input type="text" class="hotkey-input" id="hotkeyScreenshotInput" readonly value="Alt+S">
+            <span class="sub-note" id="hotkeyHint" data-i18n="hotkeyHint">Кликните и нажмите нужные клавиши (по умолчанию Alt+S)</span>
           </div>
         </div>
 

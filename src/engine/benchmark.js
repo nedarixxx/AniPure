@@ -169,6 +169,7 @@
       gl.uniform1f(gl.getUniformLocation(pFused, 'uVibrance'), 0.05);
       gl.uniform1f(gl.getUniformLocation(pFused, 'uColorProfile'), 1.0);
       gl.uniform1f(gl.getUniformLocation(pFused, 'uAntiFlash'), 0.0);
+      gl.uniform1f(gl.getUniformLocation(pFused, 'uVignette'), 0.0);
       gl.uniform1f(gl.getUniformLocation(pFused, 'uSplitScreen'), 0.0);
       gl.uniform1f(gl.getUniformLocation(pFused, 'uSplitPos'), 0.5);
       gl.drawArrays(gl.TRIANGLES, 0, 6);

@@ -567,6 +567,44 @@ input[type="range"] {
 }
 
 /* Sites & GPU (Tab 3) */
+.hotkey-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 10px 11px;
+}
+
+.hotkey-input {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 5px;
+  padding: 7px 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.hotkey-input:hover {
+  border-color: var(--border-hover);
+}
+
+.hotkey-input:focus,
+.hotkey-input.recording {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  background: var(--rail);
+}
+
 .site-box {
   border: 1px solid var(--border);
   border-radius: 7px;

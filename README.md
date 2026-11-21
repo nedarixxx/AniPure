@@ -4,7 +4,7 @@
 
 AniPure is a Manifest V3 browser extension for Chromium-based browsers (Google Chrome, Microsoft Edge, Brave, Opera, Vivaldi) that provides real-time video upscaling and enhancement from 720p to 1080p, 2K, and 4K using WebGL2 shaders and Anime4K v4 neural network models.
 
-Version: 0.1.1
+Version: 0.1.2
 
 ---
 
@@ -36,8 +36,12 @@ Version: 0.1.1
   - OLED Deep (deep true blacks without shadow detail clipping).
 - Anti-Flash option to attenuate sudden harsh white flashes during action scenes.
 - Black Level Fix and dynamic Vibrance adjustment.
+- Independent Vignette control in the Fine-Tuning section.
 
-### 5. Player Integration and Independent Activation
+### 5. Player Controls, Hotkeys & Clean Screenshots
+- Clean 4K/2K Screenshots: Instant lossless PNG capture directly from the WebGL2 rendering buffer into your Downloads folder without watermarks or player overlays.
+- Customizable screenshot hotkey in the "Sites & GPU" settings tab (defaults to safe `Alt+S` to eliminate conflicts with site navigation) with interactive key combination recording.
+- Dedicated screenshot camera button on the in-player control overlay.
 - Minimalist popup interface supporting AMOLED Black (`#000000`) and Light themes.
 - Independent per-player and per-site activation: processing is toggled explicitly on each player instance and does not bleed into other tabs or domains.
 - Compact on-player overlay with top-right corner hover hotspot: appears when hovering over the control area, stays pinned during interaction and mouse clicks, and hides smoothly after a 1-second timeout once the cursor leaves.

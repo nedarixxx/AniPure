@@ -97,6 +97,13 @@
           </svg>
           <span>${I18n ? I18n.t('splitBtn', lang) : 'До / После'}</span>
         </button>
+        <button type="button" class="anipure-pill-btn lumascale-pill-btn ls-hidden" data-act="screenshot" title="${I18n ? I18n.t('screenshotTitle', lang, { key: currentSettings.hotkeyScreenshot || 'Alt+S' }) : 'Чистый 4K/2K скриншот'}">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M2.5 5.5A1.5 1.5 0 0 1 4 4h1.5l1-1.5h3l1 1.5H12a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H4a1.5 1.5 0 0 1-1.5-1.5v-6z"/>
+            <circle cx="8" cy="8.5" r="2.5"/>
+          </svg>
+          <span class="ls-shot-text">${I18n ? I18n.t('screenshotBtn', lang) : 'Снимок'}</span>
+        </button>
       `;
       (this.playerRoot || this.host).appendChild(this.controlsEl);
 
@@ -154,6 +161,17 @@
         savePartialSettings({ splitScreen: !currentSettings.splitScreen });
         if (this.controlsEl) this.controlsEl.classList.add('ls-visible');
       });
+
+      const shotBtn = this.controlsEl.querySelector('[data-act="screenshot"]');
+      if (shotBtn) {
+        shotBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (typeof shotBtn.blur === 'function') shotBtn.blur();
+          this.captureScreenshot();
+          if (this.controlsEl) this.controlsEl.classList.add('ls-visible');
+        });
+      }
 
       // Drag split-screen handle
       let dragging = false;
@@ -410,6 +428,18 @@
         splitTextNode.textContent = I18n ? I18n.t('splitBtn', lang) : 'До / После';
       }
 
+      const shotBtn = this.controlsEl.querySelector('[data-act="screenshot"]');
+      if (shotBtn) {
+        shotBtn.classList.toggle('ls-hidden', !shouldRun);
+        shotBtn.title = I18n
+          ? I18n.t('screenshotTitle', lang, { key: currentSettings.hotkeyScreenshot || 'Alt+S' })
+          : `Чистый 4K/2K скриншот (${currentSettings.hotkeyScreenshot || 'Alt+S'})`;
+        const shotTextNode = shotBtn.querySelector('.ls-shot-text');
+        if (shotTextNode) {
+          shotTextNode.textContent = I18n ? I18n.t('screenshotBtn', lang) : 'Снимок';
+        }
+      }
+
       this.splitHandleEl.classList.toggle('ls-hidden', !splitAllowed);
       this.splitLeftLabel.classList.toggle('ls-hidden', !splitAllowed);
       this.splitRightLabel.classList.toggle('ls-hidden', !splitAllowed);
@@ -475,6 +505,45 @@
       const msSuffix = lang === 'ru' ? ' мс' : ' ms';
       const msText = t.renderMs < 0.1 ? (lang === 'ru' ? '< 0.1 мс' : '< 0.1 ms') : `${t.renderMs.toFixed(1)}${msSuffix}`;
       this.hudEl.textContent = `${t.srcWidth}x${t.srcHeight} -> ${t.outWidth}x${t.outHeight} | ${msText} | ${fpsText} | ${tierLabel}${flowTag}`;
+    }
+
+    async captureScreenshot() {
+      const lang = I18n ? I18n.resolveLanguage(currentSettings.language) : 'ru';
+      if (!this.active || !this.pipeline || !this.canvas) {
+        this._showToast(I18n ? I18n.t('toastShotNotReady', lang) : 'AniPure: видеопоток не активен');
+        return;
+      }
+      try {
+        const blob = await this.pipeline.captureCleanScreenshot();
+        if (!blob) throw new Error('Не удалось получить кадр');
+
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const timeStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+        const w = this.canvas.width || 1920;
+        const h = this.canvas.height || 1080;
+        let site = 'video';
+        try { site = (window.location.hostname || 'stream').replace(/[^a-zA-Z0-9.-]/g, '_'); } catch (_) {}
+        const filename = `AniPure_${site}_${w}x${h}_${timeStr}.png`;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          a.remove();
+          URL.revokeObjectURL(url);
+        }, 1200);
+
+        const msg = I18n
+          ? I18n.t('toastShotSaved', lang, { res: `${w}x${h}` })
+          : `AniPure: скриншот сохранён (${w}x${h})`;
+        this._showToast(msg);
+      } catch (err) {
+        this._showToast('AniPure: ошибка скриншота — ' + err.message);
+      }
     }
 
     destroy() {
@@ -589,6 +658,11 @@
           });
           return false;
         }
+        if (msg.type === 'EXECUTE_SCREENSHOT') {
+          const done = triggerActiveScreenshot();
+          sendResponse({ ok: done });
+          return false;
+        }
         return false;
       });
     } catch (_) {}
@@ -608,6 +682,110 @@
     window.LumaScaleContentApi = window.AniPureContentApi;
     scanAndAttach();
   }
+
+  function triggerActiveScreenshot() {
+    for (const ctrl of attachedVideos.values()) {
+      if (ctrl.active) {
+        ctrl.captureScreenshot();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'ANIPURE_EXECUTE_SCREENSHOT') {
+      const done = triggerActiveScreenshot();
+      if (!done && window.frames.length > 0) {
+        for (let i = 0; i < window.frames.length; i++) {
+          try {
+            window.frames[i].postMessage({ type: 'ANIPURE_EXECUTE_SCREENSHOT' }, '*');
+          } catch (_) {}
+        }
+      }
+    }
+  });
+
+  const CYRILLIC_KEY_MAP = {
+    'й':'Q','ц':'W','у':'E','к':'R','е':'T','н':'Y','г':'U','ш':'I','щ':'O','з':'P',
+    'х':'[','ъ':']','ф':'A','ы':'S','в':'D','а':'F','п':'G','р':'H','о':'J','л':'K',
+    'д':'L','ж':';','э':"'",'я':'Z','ч':'X','с':'C','м':'V','и':'B','т':'N','ь':'M',
+    'б':',','ю':'.'
+  };
+
+  function extractKey(e) {
+    if (!e) return '';
+    if (e.code && e.code.startsWith('Key')) {
+      return e.code.slice(3).toUpperCase();
+    }
+    if (e.code && e.code.startsWith('Digit')) {
+      return e.code.slice(5);
+    }
+    if (e.code && e.code.startsWith('F') && /^F\d+$/.test(e.code)) {
+      return e.code;
+    }
+    if (e.code === 'Space' || e.key === ' ') {
+      return 'Space';
+    }
+    const raw = (e.key || '').toLowerCase();
+    if (CYRILLIC_KEY_MAP[raw]) {
+      return CYRILLIC_KEY_MAP[raw];
+    }
+    if (e.key && e.key.length === 1) {
+      return e.key.toUpperCase();
+    }
+    return e.key || '';
+  }
+
+  function formatKeyCombo(e) {
+    const parts = [];
+    if (e.ctrlKey) parts.push('Ctrl');
+    if (e.altKey) parts.push('Alt');
+    if (e.shiftKey) parts.push('Shift');
+    if (e.metaKey) parts.push('Meta');
+    const k = extractKey(e);
+    if (!k || ['Control', 'Alt', 'Shift', 'Meta'].includes(k)) return null;
+    parts.push(k);
+    return parts.join('+');
+  }
+
+  function matchesCombo(e, targetCombo) {
+    if (!targetCombo) return false;
+    const cur = formatKeyCombo(e);
+    if (!cur) return false;
+    return cur.toLowerCase() === targetCombo.trim().toLowerCase();
+  }
+
+  window.addEventListener('keydown', (e) => {
+    const target = e.target;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      return;
+    }
+    const desiredHotkey = currentSettings.hotkeyScreenshot || 'Alt+S';
+    if (matchesCombo(e, desiredHotkey)) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const executedLocally = triggerActiveScreenshot();
+      if (!executedLocally) {
+        if (isExtensionContextValid()) {
+          try {
+            chrome.runtime.sendMessage({ type: 'TRIGGER_SCREENSHOT' }).catch(() => {});
+          } catch (_) {}
+        }
+        try {
+          for (let i = 0; i < window.frames.length; i++) {
+            try {
+              window.frames[i].postMessage({ type: 'ANIPURE_EXECUTE_SCREENSHOT' }, '*');
+            } catch (_) {}
+          }
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'ANIPURE_EXECUTE_SCREENSHOT' }, '*');
+          }
+        } catch (_) {}
+      }
+    }
+  }, true);
 
   const mo = new MutationObserver(() => scanAndAttach());
   mo.observe(document.documentElement || document.body, { childList: true, subtree: true });

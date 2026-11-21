@@ -13,7 +13,7 @@
 
   const APP_META = {
     name: 'AniPure',
-    version: '0.1.1'
+    version: '0.1.2'
   };
 
   const PERFORMANCE_TIERS = {
@@ -272,6 +272,8 @@
     sceneCutThreshold: 0.16,
     colorProfile: 'bluray',
     antiFlash: false,
+    vignette: 0.0,
+    hotkeyScreenshot: 'Alt+S',
     autoThrottle: true,
     splitScreen: false,
     splitPosition: 0.5,
@@ -308,6 +310,10 @@
       whitelist: Array.isArray(src.whitelist) ? src.whitelist : []
     };
     if (merged.resolution === '2x') merged.resolution = '1440p';
+    merged.vignette = typeof merged.vignette === 'number' ? clamp(merged.vignette, 0, 1) : 0.0;
+    if (typeof merged.hotkeyScreenshot !== 'string' || !merged.hotkeyScreenshot.trim()) {
+      merged.hotkeyScreenshot = 'Alt+S';
+    }
     const validLanguages = ['auto', 'en', 'ru'];
     if (!validLanguages.includes(merged.language)) {
       merged.language = 'auto';
@@ -346,6 +352,7 @@
       colorProfileId: colorProfileObj.id,
       colorProfileIndex: colorProfileObj.index,
       antiFlash: Boolean(s.antiFlash),
+      vignette: clamp(s.vignette || 0, 0, 1),
       interpolationMode: s.interpolation || 'off',
       targetFps: (INTERPOLATION_MODES[s.interpolation] || INTERPOLATION_MODES.off).targetFps,
       interpolationStrength: clamp(s.interpolationStrength, 0.1, 1.0),
