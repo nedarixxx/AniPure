@@ -167,6 +167,9 @@ async function run() {
       document.querySelector('[data-tab="sites"]').click();
       const siteBtns = Array.from(document.querySelectorAll('#tab-sites .flat-btn'));
       const anyClipped = siteBtns.some(b => b.getBoundingClientRect().right > 384);
+      const skipChecked = document.getElementById('checkSkipOp') ? document.getElementById('checkSkipOp').checked : false;
+      const skipDurationVal = document.getElementById('valSkipDuration') ? document.getElementById('valSkipDuration').textContent : '';
+      const skipHotkeyVal = document.getElementById('hotkeySkipInput') ? document.getElementById('hotkeySkipInput').value : '';
 
       // Switch to Tab 2 (Color & Tune), pick Cinema profile, toggle Anti-Flash, move slider
       document.querySelector('[data-tab="tune"]').click();
@@ -179,7 +182,7 @@ async function run() {
       slider.dispatchEvent(new Event('input'));
       const casText = document.getElementById('valCas').textContent;
 
-      return { amoledBg, overflowX, anyClipped, modeCards, colorCount, cpDesc, playerBtnChecked, casText };
+      return { amoledBg, overflowX, anyClipped, modeCards, colorCount, cpDesc, playerBtnChecked, casText, skipChecked, skipDurationVal, skipHotkeyVal };
     })()`);
 
     // Capture screenshot of Tab 2 ("Цвет и текст") in AMOLED theme
@@ -195,7 +198,7 @@ async function run() {
     if (popupCheck.amoledBg !== 'rgb(0, 0, 0)') throw new Error('AMOLED background is not true black: ' + popupCheck.amoledBg);
     if (lightBg !== 'rgb(255, 255, 255)') throw new Error('Light background is not white: ' + lightBg);
     if (popupCheck.overflowX || popupCheck.anyClipped) throw new Error('Popup UI overflow/clipping detected');
-    if (popupCheck.modeCards < 6 || popupCheck.colorCount !== 6 || !popupCheck.playerBtnChecked || popupCheck.casText !== '60%') {
+    if (popupCheck.modeCards < 6 || popupCheck.colorCount !== 6 || !popupCheck.playerBtnChecked || popupCheck.casText !== '60%' || !popupCheck.skipChecked || !popupCheck.skipDurationVal.includes('85') || popupCheck.skipHotkeyVal !== 'Alt+X') {
       throw new Error('New popup controls failed: ' + JSON.stringify(popupCheck));
     }
 
@@ -310,6 +313,17 @@ async function run() {
       await new Promise(r => setTimeout(r, 1400));
       const postClickLeaveOpacity = controls ? getComputedStyle(controls).opacity : '';
 
+      // Test skip button (vertically centered, horizontally on the right)
+      const skipBtn = document.querySelector('.anipure-skip-btn, .lumascale-skip-btn');
+      const skipBtnText = skipBtn ? skipBtn.querySelector('.ls-skip-text').textContent : '';
+      const videoEl = document.querySelector('video');
+      const timeBeforeSkip = videoEl ? videoEl.currentTime : 0;
+      if (skipBtn) skipBtn.click();
+      const timeAfterSkip = videoEl ? videoEl.currentTime : 0;
+      const osdBadge = document.querySelector('.anipure-osd-badge, .lumascale-osd-badge');
+      const osdText = osdBadge ? osdBadge.textContent : '';
+      const osdShown = osdBadge ? osdBadge.classList.contains('ls-show') : false;
+
       return {
         handleWhenSplitOff,
         handleWhenSplitOn,
@@ -319,6 +333,13 @@ async function run() {
         canvasW: canvas ? canvas.width : 0,
         canvasH: canvas ? canvas.height : 0,
         telemetry: t,
+        skipCheck: {
+          skipBtnText,
+          timeBeforeSkip,
+          timeAfterSkip,
+          osdShown,
+          osdText
+        },
         overlayCheck: {
           toggleText,
           classBefore,
@@ -388,6 +409,12 @@ async function run() {
     }
     if (videoCheck.overlayCheck.postClickLeaveOpacity !== '0') {
       throw new Error('Controls remained stuck visible after clicking toggle: ' + JSON.stringify(videoCheck.overlayCheck));
+    }
+    if (!videoCheck.skipCheck || !videoCheck.skipCheck.skipBtnText.includes('85')) {
+      throw new Error('Skip button text did not match expected 85s: ' + JSON.stringify(videoCheck.skipCheck));
+    }
+    if (!videoCheck.skipCheck.osdShown || !videoCheck.skipCheck.osdText.includes('+85')) {
+      throw new Error('Skip OSD feedback badge failed to appear: ' + JSON.stringify(videoCheck.skipCheck));
     }
     if (videoCheck.displayWhenOn === 'none' || videoCheck.canvasW < 1920) {
       throw new Error('WebGL2 Anime4K canvas did not upscale properly: ' + JSON.stringify(videoCheck));

@@ -13,7 +13,7 @@
 
   const APP_META = {
     name: 'AniPure',
-    version: '0.1.2'
+    version: '0.2.0'
   };
 
   const PERFORMANCE_TIERS = {
@@ -274,6 +274,9 @@
     antiFlash: false,
     vignette: 0.0,
     hotkeyScreenshot: 'Alt+S',
+    skipOpEnabled: true,
+    skipDuration: 85,
+    hotkeySkip: 'Alt+X',
     autoThrottle: true,
     splitScreen: false,
     splitPosition: 0.5,
@@ -313,6 +316,11 @@
     merged.vignette = typeof merged.vignette === 'number' ? clamp(merged.vignette, 0, 1) : 0.0;
     if (typeof merged.hotkeyScreenshot !== 'string' || !merged.hotkeyScreenshot.trim()) {
       merged.hotkeyScreenshot = 'Alt+S';
+    }
+    merged.skipOpEnabled = typeof merged.skipOpEnabled === 'boolean' ? merged.skipOpEnabled : true;
+    merged.skipDuration = typeof merged.skipDuration === 'number' ? clamp(Math.round(merged.skipDuration), 10, 180) : 85;
+    if (typeof merged.hotkeySkip !== 'string' || !merged.hotkeySkip.trim()) {
+      merged.hotkeySkip = 'Alt+X';
     }
     const validLanguages = ['auto', 'en', 'ru'];
     if (!validLanguages.includes(merged.language)) {

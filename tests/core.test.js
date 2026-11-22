@@ -10,7 +10,7 @@ const Shaders = require('../src/shared/shaders.js');
 const Models = require('../src/shaders/anime4k-models.js');
 const CnnRunner = require('../src/engine/cnn-runner.js');
 
-test('AniPure v0.1.2 Core & Anime4K CNN Unit Tests', async (t) => {
+test('AniPure v0.2.0 Core & Anime4K CNN Unit Tests', async (t) => {
   await t.test('TC-01: Manifest V3 structure, rules.json (CORS) and all files exist', () => {
     const rootDir = path.resolve(__dirname, '..');
     const manifest = JSON.parse(fs.readFileSync(path.join(rootDir, 'manifest.json'), 'utf8'));
@@ -185,5 +185,39 @@ test('AniPure v0.1.2 Core & Anime4K CNN Unit Tests', async (t) => {
 
     const paramsEco = Config.resolveEffectiveParams({ mode: 'eco_fast', vignette: 0.25 });
     assert.equal(paramsEco.vignette, 0.25);
+  });
+
+  await t.test('TC-11: Skip opening / ending (85 sec) settings, duration clamping, i18n & hotkey validation', () => {
+    assert.equal(Config.DEFAULT_SETTINGS.skipOpEnabled, true);
+    assert.equal(Config.DEFAULT_SETTINGS.skipDuration, 85);
+    assert.equal(Config.DEFAULT_SETTINGS.hotkeySkip, 'Alt+X');
+
+    const merged = Config.mergeSettings({
+      skipOpEnabled: false,
+      skipDuration: 90,
+      hotkeySkip: 'Alt+N'
+    });
+    assert.equal(merged.skipOpEnabled, false);
+    assert.equal(merged.skipDuration, 90);
+    assert.equal(merged.hotkeySkip, 'Alt+N');
+
+    // Clamping duration
+    const clampedLow = Config.mergeSettings({ skipDuration: 2 });
+    assert.equal(clampedLow.skipDuration, 10);
+    const clampedHigh = Config.mergeSettings({ skipDuration: 999 });
+    assert.equal(clampedHigh.skipDuration, 180);
+
+    // Fallback for invalid hotkey
+    const fallback = Config.mergeSettings({ hotkeySkip: '  ' });
+    assert.equal(fallback.hotkeySkip, 'Alt+X');
+
+    // i18n verification
+    const I18n = require('../src/shared/i18n.js');
+    assert.equal(I18n.t('skipBtn', 'ru', { sec: 85 }), 'Пропуск (85 сек)');
+    assert.equal(I18n.t('skipBtn', 'en', { sec: 85 }), 'Skip (85s)');
+    assert.equal(I18n.t('skipOsd', 'ru', { sec: 85 }), '+85 сек');
+    assert.equal(I18n.t('skipOsd', 'en', { sec: 85 }), '+85s');
+    assert.ok(I18n.t('skipToggleTitle', 'ru').length > 0);
+    assert.ok(I18n.t('skipToggleTitle', 'en').length > 0);
   });
 });

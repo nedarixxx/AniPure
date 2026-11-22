@@ -45,9 +45,14 @@
       this.active = false;
       this.playerActive = false;
       this.corsWarned = false;
+      this.skipBtn = null;
+      this.osdBadge = null;
+      this._osdTimer = null;
       this._overlayHideTimer = null;
       this._isPointerOverControls = false;
       this._isPointerInHotspot = false;
+      this._isPointerOverSkip = false;
+      this._isPointerInSkipHotspot = false;
       this._moveTargets = [];
 
       if (!this.host) return;
@@ -134,6 +139,28 @@
       this.splitRightLabel.textContent = 'AniPure';
       this.splitRightLabel.style.right = '12px';
       this.host.appendChild(this.splitRightLabel);
+
+      // Skip opening / ending button (vertically centered, horizontally on the right)
+      const skipSec = currentSettings.skipDuration || 85;
+      const skipHotkey = currentSettings.hotkeySkip || 'Alt+X';
+      this.skipBtn = document.createElement('button');
+      this.skipBtn.className = 'anipure-skip-btn lumascale-skip-btn ls-hidden';
+      this.skipBtn.type = 'button';
+      this.skipBtn.title = I18n
+        ? I18n.t('skipBtnTitle', lang, { sec: skipSec, key: skipHotkey })
+        : `Пропустить опенинг / эндинг (${skipSec} сек) [${skipHotkey}]`;
+      this.skipBtn.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M2 3.5l6 4.5-6 4.5V3.5zm7 0l6 4.5-6 4.5V3.5z"/>
+        </svg>
+        <span class="ls-skip-text">${I18n ? I18n.t('skipBtn', lang, { sec: skipSec }) : `Пропуск (${skipSec} сек)`}</span>
+      `;
+      (this.playerRoot || this.host).appendChild(this.skipBtn);
+
+      // OSD Feedback Badge
+      this.osdBadge = document.createElement('div');
+      this.osdBadge.className = 'anipure-osd-badge lumascale-osd-badge ls-hidden';
+      (this.playerRoot || this.host).appendChild(this.osdBadge);
     }
 
     _bindEvents() {
@@ -170,6 +197,37 @@
           if (typeof shotBtn.blur === 'function') shotBtn.blur();
           this.captureScreenshot();
           if (this.controlsEl) this.controlsEl.classList.add('ls-visible');
+        });
+      }
+
+      // Skip Opening button events
+      if (this.skipBtn) {
+        this.skipBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+        this.skipBtn.addEventListener('mouseup', (e) => e.stopPropagation());
+        this.skipBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (typeof this.skipBtn.blur === 'function') this.skipBtn.blur();
+          this.skipOpening();
+          this._isPointerOverSkip = true;
+          this.skipBtn.classList.add('ls-visible');
+          this._scheduleHideOverlay(1000);
+        });
+
+        this.skipBtn.addEventListener('mouseenter', () => {
+          this._isPointerOverSkip = true;
+          this._cancelHideTimer();
+          this.skipBtn.classList.add('ls-visible');
+        });
+        this.skipBtn.addEventListener('mousemove', (e) => {
+          e.stopPropagation();
+          this._isPointerOverSkip = true;
+          this._cancelHideTimer();
+          this.skipBtn.classList.add('ls-visible');
+        });
+        this.skipBtn.addEventListener('mouseleave', () => {
+          this._isPointerOverSkip = false;
+          this._checkPointerLeave();
         });
       }
 
@@ -244,12 +302,12 @@
       // While pointer is in the hotspot or over buttons, it stays visible indefinitely.
       // When pointer leaves, it smoothly hides after exactly 1 second.
       const handlePlayerMove = (e) => {
-        if (this._isPointerOverControls) {
+        if (this._isPointerOverControls || this._isPointerOverSkip) {
           this._cancelHideTimer();
           return;
         }
         const root = this.playerRoot || this.host;
-        if (!root || !this.controlsEl) return;
+        if (!root) return;
         const rect = root.getBoundingClientRect();
         if (rect.width <= 0 || rect.height <= 0) return;
 
@@ -258,20 +316,42 @@
                              (e.clientY >= rect.top - 10) &&
                              (e.clientY <= rect.top + 60);
 
+        const inRightCenterZone = (e.clientX >= rect.right - 180) &&
+                                  (e.clientX <= rect.right + 10) &&
+                                  (e.clientY >= rect.top + rect.height * 0.30) &&
+                                  (e.clientY <= rect.top + rect.height * 0.70);
+
+        let changed = false;
         if (inCornerZone) {
           this._isPointerInHotspot = true;
           this._cancelHideTimer();
-          this.controlsEl.classList.add('ls-visible');
+          if (this.controlsEl) this.controlsEl.classList.add('ls-visible');
         } else {
           if (this._isPointerInHotspot) {
             this._isPointerInHotspot = false;
-            this._checkPointerLeave();
+            changed = true;
           }
+        }
+
+        if (currentSettings.skipOpEnabled && inRightCenterZone) {
+          this._isPointerInSkipHotspot = true;
+          this._cancelHideTimer();
+          if (this.skipBtn) this.skipBtn.classList.add('ls-visible');
+        } else {
+          if (this._isPointerInSkipHotspot) {
+            this._isPointerInSkipHotspot = false;
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          this._checkPointerLeave();
         }
       };
 
       const handlePlayerLeave = () => {
         this._isPointerInHotspot = false;
+        this._isPointerInSkipHotspot = false;
         this._checkPointerLeave();
       };
 
@@ -286,6 +366,8 @@
       document.addEventListener('mouseleave', () => {
         this._isPointerOverControls = false;
         this._isPointerInHotspot = false;
+        this._isPointerOverSkip = false;
+        this._isPointerInSkipHotspot = false;
         this._checkPointerLeave();
       });
     }
@@ -298,31 +380,40 @@
     }
 
     _checkPointerLeave() {
-      if (this._isPointerOverControls || this._isPointerInHotspot) {
+      if (this._isPointerOverControls || this._isPointerInHotspot ||
+          this._isPointerOverSkip || this._isPointerInSkipHotspot) {
         return;
       }
       this._scheduleHideOverlay(1000);
     }
 
     _showOverlay() {
-      if (!this.controlsEl) return;
-      this.controlsEl.classList.add('ls-visible');
+      if (this.controlsEl) this.controlsEl.classList.add('ls-visible');
+      if (this.skipBtn && currentSettings.skipOpEnabled) this.skipBtn.classList.add('ls-visible');
     }
 
     _scheduleHideOverlay(delay = 1000) {
-      if (this._isPointerOverControls || this._isPointerInHotspot) {
+      if (this._isPointerOverControls || this._isPointerInHotspot ||
+          this._isPointerOverSkip || this._isPointerInSkipHotspot) {
         return;
       }
       this._cancelHideTimer();
       this._overlayHideTimer = setTimeout(() => {
-        if (this._isPointerOverControls || this._isPointerInHotspot) {
+        if (this._isPointerOverControls || this._isPointerInHotspot ||
+            this._isPointerOverSkip || this._isPointerInSkipHotspot) {
           return;
         }
         if (this.controlsEl && this.controlsEl.matches(':hover')) {
           return;
         }
+        if (this.skipBtn && this.skipBtn.matches(':hover')) {
+          return;
+        }
         if (this.controlsEl) {
           this.controlsEl.classList.remove('ls-visible');
+        }
+        if (this.skipBtn) {
+          this.skipBtn.classList.remove('ls-visible');
         }
         this._overlayHideTimer = null;
       }, delay);
@@ -440,6 +531,22 @@
         }
       }
 
+      const skipSec = currentSettings.skipDuration || 85;
+      const skipHotkey = currentSettings.hotkeySkip || 'Alt+X';
+      const skipAllowed = Boolean(currentSettings.skipOpEnabled);
+      if (this.skipBtn) {
+        this.skipBtn.classList.toggle('ls-hidden', !skipAllowed);
+        this.skipBtn.title = I18n
+          ? I18n.t('skipBtnTitle', lang, { sec: skipSec, key: skipHotkey })
+          : `Пропустить опенинг / эндинг (${skipSec} сек) [${skipHotkey}]`;
+        const skipTextNode = this.skipBtn.querySelector('.ls-skip-text');
+        if (skipTextNode) {
+          skipTextNode.textContent = I18n
+            ? I18n.t('skipBtn', lang, { sec: skipSec })
+            : `Пропуск (${skipSec} сек)`;
+        }
+      }
+
       this.splitHandleEl.classList.toggle('ls-hidden', !splitAllowed);
       this.splitLeftLabel.classList.toggle('ls-hidden', !splitAllowed);
       this.splitRightLabel.classList.toggle('ls-hidden', !splitAllowed);
@@ -546,13 +653,65 @@
       }
     }
 
+    skipOpening() {
+      if (!this.video) return;
+      const sec = typeof currentSettings.skipDuration === 'number' ? currentSettings.skipDuration : 85;
+      const duration = Number.isFinite(this.video.duration) && this.video.duration > 0
+        ? this.video.duration
+        : Infinity;
+
+      // Safe seek: never exceed duration, leave 0.5s if near the end
+      const maxTime = Number.isFinite(duration) ? Math.max(0, duration - 0.5) : Infinity;
+      const targetTime = Math.min(this.video.currentTime + sec, maxTime);
+
+      this.video.currentTime = targetTime;
+      if (this.pipeline && this.active) {
+        this.pipeline.refreshCurrentFrame();
+      }
+
+      this._showOsdBadge(sec);
+    }
+
+    _showOsdBadge(sec) {
+      if (!this.osdBadge) return;
+      const lang = I18n ? I18n.resolveLanguage(currentSettings.language) : 'ru';
+      const osdText = I18n ? I18n.t('skipOsd', lang, { sec }) : `+${sec} ${lang === 'ru' ? 'сек' : 's'}`;
+      this.osdBadge.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M2 3.5l6 4.5-6 4.5V3.5zm7 0l6 4.5-6 4.5V3.5z"/>
+        </svg>
+        <span>${escapeHtml(osdText)}</span>
+      `;
+      this.osdBadge.classList.remove('ls-hidden');
+      this.osdBadge.classList.add('ls-show');
+
+      if (this._osdTimer) clearTimeout(this._osdTimer);
+      this._osdTimer = setTimeout(() => {
+        if (this.osdBadge) {
+          this.osdBadge.classList.remove('ls-show');
+          setTimeout(() => {
+            if (this.osdBadge && !this.osdBadge.classList.contains('ls-show')) {
+              this.osdBadge.classList.add('ls-hidden');
+            }
+          }, 250);
+        }
+      }, 700);
+    }
+
     destroy() {
       this._cancelHideTimer();
+      if (this._osdTimer) clearTimeout(this._osdTimer);
       if (this.resizeObserver) this.resizeObserver.disconnect();
       if (this.pipeline) this.pipeline.destroy();
-      [this.canvas, this.controlsEl, this.hudEl, this.splitHandleEl, this.splitLeftLabel, this.splitRightLabel, this.toastEl]
+      [this.canvas, this.controlsEl, this.skipBtn, this.osdBadge, this.hudEl, this.splitHandleEl, this.splitLeftLabel, this.splitRightLabel, this.toastEl]
         .forEach(el => { if (el && el.parentNode) el.parentNode.removeChild(el); });
     }
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
   }
 
   function scanAndAttach() {
@@ -663,6 +822,11 @@
           sendResponse({ ok: done });
           return false;
         }
+        if (msg.type === 'EXECUTE_SKIP_OP') {
+          const done = triggerActiveSkipOp();
+          sendResponse({ ok: done });
+          return false;
+        }
         return false;
       });
     } catch (_) {}
@@ -677,6 +841,7 @@
         }
         return null;
       },
+      skipOpening: triggerActiveSkipOp,
       rescan: scanAndAttach
     };
     window.LumaScaleContentApi = window.AniPureContentApi;
@@ -693,6 +858,24 @@
     return false;
   }
 
+  function triggerActiveSkipOp() {
+    if (!currentSettings.skipOpEnabled) return false;
+    // Prefer playing video if available
+    for (const ctrl of attachedVideos.values()) {
+      if (ctrl.video && !ctrl.video.paused) {
+        ctrl.skipOpening();
+        return true;
+      }
+    }
+    for (const ctrl of attachedVideos.values()) {
+      if (ctrl.video) {
+        ctrl.skipOpening();
+        return true;
+      }
+    }
+    return false;
+  }
+
   window.addEventListener('message', (e) => {
     if (e.data && e.data.type === 'ANIPURE_EXECUTE_SCREENSHOT') {
       const done = triggerActiveScreenshot();
@@ -700,6 +883,16 @@
         for (let i = 0; i < window.frames.length; i++) {
           try {
             window.frames[i].postMessage({ type: 'ANIPURE_EXECUTE_SCREENSHOT' }, '*');
+          } catch (_) {}
+        }
+      }
+    }
+    if (e.data && e.data.type === 'ANIPURE_EXECUTE_SKIP_OP') {
+      const done = triggerActiveSkipOp();
+      if (!done && window.frames.length > 0) {
+        for (let i = 0; i < window.frames.length; i++) {
+          try {
+            window.frames[i].postMessage({ type: 'ANIPURE_EXECUTE_SKIP_OP' }, '*');
           } catch (_) {}
         }
       }
@@ -784,6 +977,33 @@
           }
         } catch (_) {}
       }
+      return;
+    }
+
+    const desiredSkipHotkey = currentSettings.hotkeySkip || 'Alt+X';
+    if (currentSettings.skipOpEnabled && matchesCombo(e, desiredSkipHotkey)) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const executedLocally = triggerActiveSkipOp();
+      if (!executedLocally) {
+        if (isExtensionContextValid()) {
+          try {
+            chrome.runtime.sendMessage({ type: 'TRIGGER_SKIP_OP' }).catch(() => {});
+          } catch (_) {}
+        }
+        try {
+          for (let i = 0; i < window.frames.length; i++) {
+            try {
+              window.frames[i].postMessage({ type: 'ANIPURE_EXECUTE_SKIP_OP' }, '*');
+            } catch (_) {}
+          }
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'ANIPURE_EXECUTE_SKIP_OP' }, '*');
+          }
+        } catch (_) {}
+      }
+      return;
     }
   }, true);
 

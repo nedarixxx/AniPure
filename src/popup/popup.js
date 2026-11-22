@@ -48,6 +48,13 @@
     hotkeyScreenshotInput: document.getElementById('hotkeyScreenshotInput'),
     resetHotkeyBtn: document.getElementById('resetHotkeyBtn'),
     hotkeyHint: document.getElementById('hotkeyHint'),
+    checkSkipOp: document.getElementById('checkSkipOp'),
+    skipOpDetails: document.getElementById('skipOpDetails'),
+    rangeSkipDuration: document.getElementById('rangeSkipDuration'),
+    valSkipDuration: document.getElementById('valSkipDuration'),
+    hotkeySkipInput: document.getElementById('hotkeySkipInput'),
+    resetHotkeySkipBtn: document.getElementById('resetHotkeySkipBtn'),
+    hotkeySkipHint: document.getElementById('hotkeySkipHint'),
     wlModeRail: document.getElementById('wlModeRail'),
     currentSiteHost: document.getElementById('currentSiteHost'),
     wlAddDomain: document.getElementById('wlAddDomain'),
@@ -193,6 +200,26 @@
 
     if (els.hotkeyScreenshotInput && !els.hotkeyScreenshotInput.classList.contains('recording')) {
       els.hotkeyScreenshotInput.value = settings.hotkeyScreenshot || 'Alt+S';
+    }
+
+    // Tab 3 Skip Opening / Ending
+    if (els.checkSkipOp) {
+      els.checkSkipOp.checked = Boolean(settings.skipOpEnabled);
+    }
+    if (els.skipOpDetails) {
+      els.skipOpDetails.style.display = settings.skipOpEnabled ? 'flex' : 'none';
+    }
+    const skipSecVal = settings.skipDuration || 85;
+    if (els.rangeSkipDuration) {
+      els.rangeSkipDuration.value = skipSecVal;
+    }
+    if (els.valSkipDuration) {
+      els.valSkipDuration.textContent = I18n
+        ? I18n.t('skipDurationVal', lang, { sec: skipSecVal })
+        : (`${skipSecVal} ${lang === 'ru' ? 'сек' : 'sec'}`);
+    }
+    if (els.hotkeySkipInput && !els.hotkeySkipInput.classList.contains('recording')) {
+      els.hotkeySkipInput.value = settings.hotkeySkip || 'Alt+X';
     }
 
     // Tab 3 Whitelist
@@ -454,6 +481,83 @@
     if (els.resetHotkeyBtn) {
       els.resetHotkeyBtn.addEventListener('click', () => {
         persist({ hotkeyScreenshot: 'Alt+S' });
+      });
+    }
+
+    // Tab 3 Skip Opening / Ending listeners
+    if (els.checkSkipOp) {
+      els.checkSkipOp.addEventListener('change', () => {
+        persist({ skipOpEnabled: els.checkSkipOp.checked });
+      });
+    }
+
+    if (els.rangeSkipDuration) {
+      els.rangeSkipDuration.addEventListener('input', () => {
+        const val = Number(els.rangeSkipDuration.value);
+        const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
+        if (els.valSkipDuration) {
+          els.valSkipDuration.textContent = I18n
+            ? I18n.t('skipDurationVal', lang, { sec: val })
+            : (`${val} ${lang === 'ru' ? 'сек' : 'sec'}`);
+        }
+      });
+      els.rangeSkipDuration.addEventListener('change', () => {
+        persist({ skipDuration: Number(els.rangeSkipDuration.value) });
+      });
+    }
+
+    if (els.hotkeySkipInput) {
+      els.hotkeySkipInput.addEventListener('focus', () => {
+        const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
+        els.hotkeySkipInput.classList.add('recording');
+        els.hotkeySkipInput.value = I18n ? I18n.t('hotkeyListening', lang) : 'Нажмите комбинацию...';
+      });
+
+      els.hotkeySkipInput.addEventListener('blur', () => {
+        els.hotkeySkipInput.classList.remove('recording');
+        els.hotkeySkipInput.value = settings.hotkeySkip || 'Alt+X';
+      });
+
+      els.hotkeySkipInput.addEventListener('keydown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const parts = [];
+        if (e.ctrlKey) parts.push('Ctrl');
+        if (e.altKey) parts.push('Alt');
+        if (e.shiftKey) parts.push('Shift');
+        if (e.metaKey) parts.push('Meta');
+
+        let k = '';
+        if (e.code && e.code.startsWith('Key')) {
+          k = e.code.slice(3).toUpperCase();
+        } else if (e.code && e.code.startsWith('Digit')) {
+          k = e.code.slice(5);
+        } else if (e.code && e.code.startsWith('F') && /^F\d+$/.test(e.code)) {
+          k = e.code;
+        } else if (e.code === 'Space' || e.key === ' ') {
+          k = 'Space';
+        } else {
+          const cyr = {
+            'й':'Q','ц':'W','у':'E','к':'R','е':'T','н':'Y','г':'U','ш':'I','щ':'O','з':'P',
+            'ф':'A','ы':'S','в':'D','а':'F','п':'G','р':'H','о':'J','л':'K','д':'L',
+            'я':'Z','ч':'X','с':'C','м':'V','и':'B','т':'N','ь':'M'
+          };
+          const raw = (e.key || '').toLowerCase();
+          k = cyr[raw] || (e.key && e.key.length === 1 ? e.key.toUpperCase() : e.key);
+        }
+
+        if (!k || ['Control', 'Alt', 'Shift', 'Meta'].includes(k)) return;
+        parts.push(k);
+        const combo = parts.join('+');
+        persist({ hotkeySkip: combo });
+        els.hotkeySkipInput.value = combo;
+        els.hotkeySkipInput.blur();
+      });
+    }
+
+    if (els.resetHotkeySkipBtn) {
+      els.resetHotkeySkipBtn.addEventListener('click', () => {
+        persist({ hotkeySkip: 'Alt+X' });
       });
     }
 
