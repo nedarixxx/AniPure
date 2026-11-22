@@ -4,7 +4,7 @@
 
 AniPure is a Manifest V3 browser extension for Chromium-based browsers (Google Chrome, Microsoft Edge, Brave, Opera, Vivaldi) that provides real-time video upscaling and enhancement from 720p to 1080p, 2K, and 4K using WebGL2 shaders and Anime4K v4 neural network models.
 
-Version: 0.1.2
+Version: 0.2.0
 
 ---
 
@@ -39,6 +39,11 @@ Version: 0.1.2
 - Independent Vignette control in the Fine-Tuning section.
 
 ### 5. Player Controls, Hotkeys & Clean Screenshots
+- Opening & Ending Skip: Ergonomic button positioned vertically centered on the right edge ("Skip (85s)") to skip anime intros and credits instantly.
+- Stealth Auto-Hide: Skip button appears when hovering over its right-center hotspot or directly interacting with it, and smoothly fades out after 1 second of inactivity.
+- Safe Boundary Seek: Automatically prevents seeks from exceeding video duration, leaving safe headroom before the end of the episode.
+- Visual OSD Feedback: Instant on-screen display badge (`+85s`) confirms seek completion directly over the video.
+- Customizable Skip Settings: Toggle switch, range slider (30s–120s, default 85s), and customizable hotkey (default `Alt+X`) in the "Sites & GPU" settings tab.
 - Clean 4K/2K Screenshots: Instant lossless PNG capture directly from the WebGL2 rendering buffer into your Downloads folder without watermarks or player overlays.
 - Customizable screenshot hotkey in the "Sites & GPU" settings tab (defaults to safe `Alt+S` to eliminate conflicts with site navigation) with interactive key combination recording.
 - Dedicated screenshot camera button on the in-player control overlay.

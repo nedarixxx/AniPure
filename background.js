@@ -43,5 +43,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return false;
   }
 
+  if (msg.type === 'TRIGGER_SKIP_OP') {
+    const tabId = sender.tab ? sender.tab.id : null;
+    if (tabId) {
+      chrome.tabs.sendMessage(tabId, { type: 'EXECUTE_SKIP_OP' }).catch(() => {});
+    }
+    sendResponse({ ok: true });
+    return false;
+  }
+
   return false;
 });

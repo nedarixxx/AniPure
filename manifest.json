@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AniPure — Нейросетевой видео-апскейлер",
   "short_name": "AniPure",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Реалтайм-улучшение 720p видео и аниме до Full HD/2K/4K на нейросетях Anime4K v4 CNN (WebGL2): лёгкий режим для ноутбуков и максимум для RTX.",
   "icons": {
     "16": "icons/icon16.png",

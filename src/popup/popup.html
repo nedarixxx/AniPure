@@ -12,7 +12,7 @@
     <header class="topbar">
       <div class="brand-wrap">
         <span class="brand-name" data-i18n="brandShort">AniPure</span>
-        <span class="brand-ver">0.1.2</span>
+        <span class="brand-ver">0.2.0</span>
       </div>
       <div class="topbar-right">
         <button type="button" class="theme-btn" id="themeToggleBtn" data-i18n="themeLight">Светлая</button>
@@ -281,6 +281,37 @@
           <div class="hotkey-box">
             <input type="text" class="hotkey-input" id="hotkeyScreenshotInput" readonly value="Alt+S">
             <span class="sub-note" id="hotkeyHint" data-i18n="hotkeyHint">Кликните и нажмите нужные клавиши (по умолчанию Alt+S)</span>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="field-head">
+            <span class="field-label" data-i18n="skipSectionTitle">Пропуск опенинга и эндинга</span>
+          </div>
+          <div class="opt-card">
+            <label class="opt-row">
+              <span data-i18n="skipToggleTitle">Кнопка пропуска в плеере</span>
+              <input type="checkbox" id="checkSkipOp">
+            </label>
+            <div id="skipOpDetails" style="padding-top:8px; display:flex; flex-direction:column; gap:10px;">
+              <div class="slider-row">
+                <div class="slider-head">
+                  <span data-i18n="skipDurationTitle">Длительность пропуска</span>
+                  <span class="slider-val" id="valSkipDuration">85 сек</span>
+                </div>
+                <input type="range" id="rangeSkipDuration" min="30" max="120" step="1" value="85">
+              </div>
+              <div>
+                <div class="field-head" style="margin-bottom:4px;">
+                  <span class="field-label" data-i18n="hotkeySkipTitle">Горячая клавиша пропуска</span>
+                  <button type="button" class="link-btn" id="resetHotkeySkipBtn" data-i18n="reset">Сбросить</button>
+                </div>
+                <div class="hotkey-box">
+                  <input type="text" class="hotkey-input" id="hotkeySkipInput" readonly value="Alt+X">
+                  <span class="sub-note" id="hotkeySkipHint" data-i18n="hotkeySkipHint">Кликните и нажмите нужные клавиши (по умолчанию Alt+X)</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

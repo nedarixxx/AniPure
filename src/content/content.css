@@ -169,11 +169,98 @@
   pointer-events: none !important;
 }
 
+/* Skip Opening & Ending Button (Vertically centered, horizontally on the right) */
+.anipure-skip-btn,
+.lumascale-skip-btn {
+  position: absolute !important;
+  top: 50% !important;
+  right: 14px !important;
+  transform: translateY(-50%) !important;
+  z-index: 2147483647 !important;
+  appearance: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  background: rgba(12, 13, 16, 0.85) !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  padding: 8px 12px !important;
+  border-radius: 7px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: opacity 0.22s ease, visibility 0.22s ease, background 0.15s ease, border-color 0.15s ease, transform 0.12s ease !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  user-select: none !important;
+}
+
+.anipure-skip-btn:hover,
+.lumascale-skip-btn:hover {
+  background: rgba(24, 26, 34, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  transform: translateY(-50%) scale(1.04) !important;
+}
+
+.anipure-skip-btn:active,
+.lumascale-skip-btn:active {
+  transform: translateY(-50%) scale(0.97) !important;
+}
+
+.anipure-skip-btn.ls-visible,
+.lumascale-skip-btn.ls-visible {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* OSD Indicator for Skip Feedback */
+.anipure-osd-badge,
+.lumascale-osd-badge {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) scale(0.92) !important;
+  z-index: 2147483647 !important;
+  background: rgba(10, 11, 14, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  padding: 12px 20px !important;
+  border-radius: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.anipure-osd-badge.ls-show,
+.lumascale-osd-badge.ls-show {
+  opacity: 1 !important;
+  transform: translate(-50%, -50%) scale(1.05) !important;
+}
+
 /* Guard: ensure hidden elements are always display none */
 .ls-hidden,
 *.ls-hidden,
 .anipure-pill-btn.ls-hidden,
-.lumascale-pill-btn.ls-hidden {
+.lumascale-pill-btn.ls-hidden,
+.anipure-skip-btn.ls-hidden,
+.lumascale-skip-btn.ls-hidden,
+.anipure-osd-badge.ls-hidden,
+.lumascale-osd-badge.ls-hidden {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
