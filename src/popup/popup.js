@@ -66,27 +66,41 @@
     openSettingsBtn: document.getElementById('openSettingsBtn')
   };
 
+  let persistQueue = Promise.resolve();
+
   function persist(patch) {
+    // Synchronous optimistic update so UI is immediately responsive
+    settings = Config.mergeSettings({
+      ...settings,
+      ...patch,
+      customParams: {
+        ...(settings.customParams || {}),
+        ...(patch.customParams || {})
+      }
+    });
+    renderUI();
+
     if (hasChrome) {
-      chrome.storage.local.get(['anipureSettings', 'lumascaleSettings'], (res) => {
-        const stored = res.anipureSettings || res.lumascaleSettings || {};
-        settings = Config.mergeSettings({
-          ...stored,
-          ...settings,
-          ...patch,
-          customParams: {
-            ...(stored.customParams || {}),
-            ...settings.customParams,
-            ...(patch.customParams || {})
-          }
+      persistQueue = persistQueue.then(() => new Promise((resolve) => {
+        chrome.storage.local.get(['anipureSettings', 'lumascaleSettings'], (res) => {
+          const stored = (res && (res.anipureSettings || res.lumascaleSettings)) || {};
+          settings = Config.mergeSettings({
+            ...stored,
+            ...patch,
+            customParams: {
+              ...(stored.customParams || {}),
+              ...(patch.customParams || {})
+            }
+          });
+          chrome.storage.local.set({
+            anipureSettings: settings,
+            lumascaleSettings: settings
+          }, () => {
+            chrome.runtime.sendMessage({ type: 'BROADCAST_SETTINGS', settings }).catch(() => {});
+            resolve();
+          });
         });
-        renderUI();
-        chrome.storage.local.set({
-          anipureSettings: settings,
-          lumascaleSettings: settings
-        });
-        chrome.runtime.sendMessage({ type: 'BROADCAST_SETTINGS', settings }).catch(() => {});
-      });
+      })).catch(() => {});
     } else {
       let stored = {};
       try {
@@ -94,15 +108,12 @@
       } catch (_) {}
       settings = Config.mergeSettings({
         ...stored,
-        ...settings,
         ...patch,
         customParams: {
           ...(stored.customParams || {}),
-          ...settings.customParams,
           ...(patch.customParams || {})
         }
       });
-      renderUI();
       try {
         localStorage.setItem('anipureSettings', JSON.stringify(settings));
         localStorage.setItem('lumascaleSettings', JSON.stringify(settings));
@@ -518,6 +529,15 @@
 
     if (els.resetHotkeyBtn) {
       els.resetHotkeyBtn.addEventListener('click', () => {
+        if ((settings.hotkeySkip || '').toLowerCase() === 'alt+s') {
+          const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
+          if (els.hotkeyHint) {
+            els.hotkeyHint.textContent = lang === 'ru'
+              ? 'Конфликт: Alt+S уже назначен на пропуск опенинга!'
+              : 'Conflict: Alt+S is already assigned to skip opening!';
+          }
+          return;
+        }
         persist({ hotkeyScreenshot: 'Alt+S' });
       });
     }
@@ -605,6 +625,15 @@
 
     if (els.resetHotkeySkipBtn) {
       els.resetHotkeySkipBtn.addEventListener('click', () => {
+        if ((settings.hotkeyScreenshot || '').toLowerCase() === 'alt+x') {
+          const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
+          if (els.hotkeySkipHint) {
+            els.hotkeySkipHint.textContent = lang === 'ru'
+              ? 'Конфликт: Alt+X уже назначен на скриншот!'
+              : 'Conflict: Alt+X is already assigned to screenshot!';
+          }
+          return;
+        }
         persist({ hotkeySkip: 'Alt+X' });
       });
     }

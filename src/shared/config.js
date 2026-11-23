@@ -322,13 +322,6 @@
     if (typeof merged.hotkeySkip !== 'string' || !merged.hotkeySkip.trim()) {
       merged.hotkeySkip = 'Alt+X';
     }
-    if (merged.hotkeySkip.trim().toLowerCase() === merged.hotkeyScreenshot.trim().toLowerCase()) {
-      if (src.hotkeySkip && !src.hotkeyScreenshot) {
-        merged.hotkeySkip = merged.hotkeyScreenshot.toLowerCase() === 'alt+x' ? 'Alt+O' : 'Alt+X';
-      } else {
-        merged.hotkeyScreenshot = merged.hotkeySkip.toLowerCase() === 'alt+s' ? 'Alt+P' : 'Alt+S';
-      }
-    }
     const validLanguages = ['auto', 'en', 'ru'];
     if (!validLanguages.includes(merged.language)) {
       merged.language = 'auto';

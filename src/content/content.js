@@ -11,6 +11,15 @@
   let lastInteractedCtrl = null;
   let lastSkipTimestamp = 0;
 
+  function markUserInteraction(ctrl) {
+    lastInteractedCtrl = ctrl;
+    if (isExtensionContextValid()) {
+      try {
+        chrome.runtime.sendMessage({ type: 'PLAYER_INTERACTION' }).catch(() => {});
+      } catch (_) {}
+    }
+  }
+
   function isAllowedOnThisPage(settings) {
     return Config.matchesWhitelist(window.location.href, settings.whitelistEnabled, settings.whitelist);
   }
@@ -178,12 +187,12 @@
     _bindEvents() {
       // Prevent player interaction (pause/seek) when clicking overlay controls
       this.controlsEl.addEventListener('mousedown', (e) => {
-        lastInteractedCtrl = this;
+        markUserInteraction(this);
         e.stopPropagation();
       });
       this.controlsEl.addEventListener('mouseup', (e) => e.stopPropagation());
       this.controlsEl.addEventListener('click', (e) => {
-        lastInteractedCtrl = this;
+        markUserInteraction(this);
         e.stopPropagation();
       });
 
@@ -191,7 +200,7 @@
       const splitBtn = this.controlsEl.querySelector('[data-act="split"]');
 
       toggleBtn.addEventListener('click', (e) => {
-        lastInteractedCtrl = this;
+        markUserInteraction(this);
         e.stopPropagation();
         e.preventDefault();
         if (typeof toggleBtn.blur === 'function') toggleBtn.blur();
@@ -201,7 +210,7 @@
       });
 
       splitBtn.addEventListener('click', (e) => {
-        lastInteractedCtrl = this;
+        markUserInteraction(this);
         e.stopPropagation();
         e.preventDefault();
         if (typeof splitBtn.blur === 'function') splitBtn.blur();
@@ -212,7 +221,7 @@
       const shotBtn = this.controlsEl.querySelector('[data-act="screenshot"]');
       if (shotBtn) {
         shotBtn.addEventListener('click', (e) => {
-          lastInteractedCtrl = this;
+          markUserInteraction(this);
           e.stopPropagation();
           e.preventDefault();
           if (typeof shotBtn.blur === 'function') shotBtn.blur();
@@ -224,12 +233,12 @@
       // Skip Opening button events
       if (this.skipBtn) {
         this.skipBtn.addEventListener('mousedown', (e) => {
-          lastInteractedCtrl = this;
+          markUserInteraction(this);
           e.stopPropagation();
         });
         this.skipBtn.addEventListener('mouseup', (e) => e.stopPropagation());
         this.skipBtn.addEventListener('click', (e) => {
-          lastInteractedCtrl = this;
+          markUserInteraction(this);
           e.stopPropagation();
           e.preventDefault();
           if (typeof this.skipBtn.blur === 'function') this.skipBtn.blur();
@@ -239,13 +248,13 @@
         });
 
         this.skipBtn.addEventListener('mouseenter', () => {
-          lastInteractedCtrl = this;
+          markUserInteraction(this);
           this._isPointerOverSkip = true;
           this._cancelHideTimer();
           this.skipBtn.classList.add('ls-visible');
         });
         this.skipBtn.addEventListener('mousemove', (e) => {
-          lastInteractedCtrl = this;
+          markUserInteraction(this);
           e.stopPropagation();
           this._isPointerOverSkip = true;
           this._cancelHideTimer();
@@ -294,12 +303,8 @@
 
       this.video.addEventListener('loadedmetadata', () => this._syncGeometry());
       this.video.addEventListener('play', () => {
-        lastInteractedCtrl = this;
         this._syncGeometry();
         if (this.active && this.pipeline) this.pipeline.start();
-      });
-      this.video.addEventListener('playing', () => {
-        lastInteractedCtrl = this;
       });
       this.video.addEventListener('seeked', () => {
         if (this.active && this.pipeline) {
@@ -312,14 +317,14 @@
 
       // Direct hover on controls: stays visible while hovering, cancels any hide timer
       this.controlsEl.addEventListener('mouseenter', () => {
-        lastInteractedCtrl = this;
+        markUserInteraction(this);
         this._isPointerOverControls = true;
         this._cancelHideTimer();
         this.controlsEl.classList.add('ls-visible');
       });
       this.controlsEl.addEventListener('mousemove', (e) => {
         e.stopPropagation();
-        lastInteractedCtrl = this;
+        markUserInteraction(this);
         this._isPointerOverControls = true;
         this._cancelHideTimer();
         this.controlsEl.classList.add('ls-visible');
@@ -334,7 +339,7 @@
       // While pointer is in the hotspot or over buttons, it stays visible indefinitely.
       // When pointer leaves, it smoothly hides after exactly 1 second.
       const handlePlayerMove = (e) => {
-        lastInteractedCtrl = this;
+        markUserInteraction(this);
         if (this._isPointerOverControls || this._isPointerOverSkip) {
           this._cancelHideTimer();
           return;
@@ -690,6 +695,11 @@
       if (!this.video || typeof this.video.currentTime !== 'number') return false;
       if (this.video.readyState < 1 && !this.video.srcObject) return false;
 
+      const now = Date.now();
+      if (now - lastSkipTimestamp < 400) {
+        return false;
+      }
+
       const sec = typeof currentSettings.skipDuration === 'number' ? currentSettings.skipDuration : 85;
       const current = this.video.currentTime;
       const duration = Number.isFinite(this.video.duration) && this.video.duration > 0
@@ -701,7 +711,7 @@
       const targetTime = Math.max(current, Math.min(current + sec, maxTime));
       const actualDelta = Math.round(targetTime - current);
 
-      if (actualDelta <= 0 && Number.isFinite(duration) && current >= duration - 0.5) {
+      if (actualDelta <= 0) {
         return false;
       }
 
@@ -711,11 +721,13 @@
         return false;
       }
 
+      lastSkipTimestamp = now;
+
       if (this.pipeline && this.active) {
         this.pipeline.refreshCurrentFrame();
       }
 
-      this._showOsdBadge(actualDelta > 0 ? actualDelta : sec);
+      this._showOsdBadge(actualDelta);
       return true;
     }
 
@@ -912,9 +924,15 @@
   }
 
   function triggerActiveScreenshot() {
-    if (lastInteractedCtrl && lastInteractedCtrl.active) {
+    if (lastInteractedCtrl && lastInteractedCtrl.active && !lastInteractedCtrl.video.ended) {
       lastInteractedCtrl.captureScreenshot();
       return true;
+    }
+    for (const ctrl of attachedVideos.values()) {
+      if (ctrl.active && !ctrl.video.ended) {
+        ctrl.captureScreenshot();
+        return true;
+      }
     }
     for (const ctrl of attachedVideos.values()) {
       if (ctrl.active) {
@@ -932,61 +950,54 @@
       return false; // Debounce rapid / double triggers
     }
 
-    let targetCtrl = null;
+    const candidates = [];
 
-    // 1. If user recently interacted with a controller and its video is valid
+    // 1. If user recently interacted with a controller and its video is valid and not ended
     if (lastInteractedCtrl && attachedVideos.has(lastInteractedCtrl.video)) {
       const v = lastInteractedCtrl.video;
-      if (document.contains(v) && v.isConnected && (v.readyState >= 1 || v.srcObject || !v.paused)) {
-        targetCtrl = lastInteractedCtrl;
+      if (document.contains(v) && v.isConnected && !v.ended && (v.readyState >= 1 || v.srcObject || !v.paused)) {
+        candidates.push(lastInteractedCtrl);
       }
     }
 
-    // 2. Otherwise search for currently playing videos, prioritizing audible then largest screen area
-    if (!targetCtrl) {
-      const playing = [];
-      for (const ctrl of attachedVideos.values()) {
-        const v = ctrl.video;
-        if (v && !v.paused && !v.ended && (v.readyState >= 1 || v.srcObject)) {
-          const rect = v.getBoundingClientRect();
-          const area = rect.width * rect.height;
-          const isAudible = !v.muted && v.volume > 0;
-          playing.push({ ctrl, area, isAudible });
-        }
-      }
-      if (playing.length > 0) {
-        playing.sort((a, b) => {
-          if (a.isAudible !== b.isAudible) return b.isAudible ? 1 : -1;
-          return b.area - a.area;
-        });
-        targetCtrl = playing[0].ctrl;
+    // 2. Currently playing videos (not ended), prioritizing audible then largest screen area
+    const playing = [];
+    for (const ctrl of attachedVideos.values()) {
+      if (candidates.includes(ctrl)) continue;
+      const v = ctrl.video;
+      if (v && !v.paused && !v.ended && (v.readyState >= 1 || v.srcObject)) {
+        const rect = v.getBoundingClientRect();
+        const area = rect.width * rect.height;
+        const isAudible = !v.muted && v.volume > 0;
+        playing.push({ ctrl, area, isAudible });
       }
     }
-
-    // 3. Fallback: video with active pipeline or largest visible area
-    if (!targetCtrl) {
-      let maxArea = -1;
-      for (const ctrl of attachedVideos.values()) {
-        const v = ctrl.video;
-        if (v && (v.readyState >= 1 || v.srcObject)) {
-          const rect = v.getBoundingClientRect();
-          const area = rect.width * rect.height;
-          if (ctrl.active && area >= maxArea) {
-            maxArea = area + 100000;
-            targetCtrl = ctrl;
-          } else if (area > maxArea) {
-            maxArea = area;
-            targetCtrl = ctrl;
-          }
-        }
-      }
+    if (playing.length > 0) {
+      playing.sort((a, b) => {
+        if (a.isAudible !== b.isAudible) return b.isAudible ? 1 : -1;
+        return b.area - a.area;
+      });
+      playing.forEach(p => candidates.push(p.ctrl));
     }
 
-    if (targetCtrl) {
-      const executed = targetCtrl.skipOpening();
-      if (executed) {
-        lastSkipTimestamp = now;
-        lastInteractedCtrl = targetCtrl;
+    // 3. Fallback: other attached videos (not ended) with active pipeline or largest visible area
+    const others = [];
+    for (const ctrl of attachedVideos.values()) {
+      if (candidates.includes(ctrl)) continue;
+      const v = ctrl.video;
+      if (v && !v.ended && (v.readyState >= 1 || v.srcObject)) {
+        const rect = v.getBoundingClientRect();
+        const area = rect.width * rect.height + (ctrl.active ? 100000 : 0);
+        others.push({ ctrl, area });
+      }
+    }
+    others.sort((a, b) => b.area - a.area);
+    others.forEach(o => candidates.push(o.ctrl));
+
+    // Try candidates in order: first successful seek handles the request
+    for (const ctrl of candidates) {
+      if (ctrl.skipOpening()) {
+        lastInteractedCtrl = ctrl;
         return true;
       }
     }
