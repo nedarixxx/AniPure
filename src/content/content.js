@@ -10,10 +10,13 @@
   const attachedVideos = new Map(); // video -> controller
   let lastInteractedCtrl = null;
   let lastSkipTimestamp = 0;
+  let lastReportedInteractionTime = 0;
 
   function markUserInteraction(ctrl) {
     lastInteractedCtrl = ctrl;
-    if (isExtensionContextValid()) {
+    const now = Date.now();
+    if (now - lastReportedInteractionTime > 1500 && isExtensionContextValid()) {
+      lastReportedInteractionTime = now;
       try {
         chrome.runtime.sendMessage({ type: 'PLAYER_INTERACTION' }).catch(() => {});
       } catch (_) {}

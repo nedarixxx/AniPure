@@ -1,14 +1,49 @@
-[English](README.md) | [Русский](README.ru.md)
+<p align="center">
+  <img src="icons/icon128.png" alt="AniPure Logo" width="84" height="84">
+</p>
 
-# AniPure
+<h1 align="center">AniPure</h1>
 
-AniPure is a Manifest V3 browser extension for Chromium-based browsers (Google Chrome, Microsoft Edge, Brave, Opera, Vivaldi) that provides real-time video upscaling and enhancement from 720p to 1080p, 2K, and 4K using WebGL2 shaders and Anime4K v4 neural network models.
+<p align="center">
+  <strong>Real-time anime & video upscaler (720p &rarr; 1080p / 2K / 4K) powered by WebGL2 and Anime4K v4 neural networks.</strong>
+</p>
 
-Version: 0.2.1
+<p align="center">
+  <a href="https://github.com/nedarixxx/AniPure/releases"><img src="https://img.shields.io/badge/version-0.2.1-3b82f6.svg" alt="Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-10b981.svg" alt="License"></a>
+  <a href="manifest.json"><img src="https://img.shields.io/badge/Manifest-V3-f59e0b.svg" alt="Manifest V3"></a>
+  <a href="src/engine/webgl-pipeline.js"><img src="https://img.shields.io/badge/WebGL2-Hardware%20Accelerated-8b5cf6.svg" alt="WebGL2"></a>
+  <a href="src/shaders/anime4k-models.js"><img src="https://img.shields.io/badge/Anime4K-v4%20CNN%20%2F%20GAN-ec4899.svg" alt="Anime4K v4"></a>
+</p>
+
+<p align="center">
+  <a href="README.md">English</a> | <a href="README.ru.md">Русский</a>
+</p>
+
+<p align="center">
+  <img src="tests/split-preview.png" alt="AniPure Real-Time Split-Screen Comparison Preview" width="880">
+</p>
 
 ---
 
-## Architecture and Features
+## Highlights
+
+- **Real-Time Neural Upscaling:** Transforms soft 720p anime streams into crisp 1080p, 1440p (2K), or 4K right inside the browser using official Anime4K v4 CNN/GAN models.
+- **Hardware-Accelerated WebGL2:** Zero lag and minimal battery consumption. Runs multi-pass shaders with floating-point RGBA16F textures directly on your GPU.
+- **Clean 4K/2K Frame Capture:** Capture pristine lossless PNG screenshots directly from the rendering buffer (`Alt+S`) without player overlays, subtitles, or watermarks.
+- **Smart Opening & Ending Skip:** Dedicated 85-second skip button (`Alt+X`) with stealth auto-hide, safe duration boundary checks, and real-time OSD seek feedback.
+- **Interactive Before / After Split Slider:** Drag-and-drop comparison slider on the player to inspect edge reconstruction, line thinning, and debanding in real time.
+- **6 Cinematic Color Profiles:** Natural, Blu-ray, Vivid HDR, Night, Cinema Film, and True OLED Black, with Anti-Flash protection and vignette tuning.
+- **Adaptive GPU Profiles:** Automatically benchmarks your hardware on first launch (from lightweight laptop iGPUs up to high-end NVIDIA GeForce RTX cards) and auto-throttles to prevent dropped frames.
+- **100% Client-Side & Private:** Zero external API calls, zero telemetry, no tracking. Everything executes locally in your browser.
+
+<p align="center">
+  <img src="tests/popup-preview.png" alt="AniPure Settings Popup UI" width="380">
+</p>
+
+---
+
+## Architecture & Features
 
 ### 1. Neural Upscaling Pipeline
 - Multi-pass execution of Anime4K v4 convolutional neural networks (Restore CNN, Upscale CNN x2, Upscale GAN x2, Upscale Denoise) on WebGL2 using RGBA16F floating-point textures.
@@ -28,95 +63,54 @@ Version: 0.2.1
 
 ### 4. Color Grading and Post-Processing
 - 6 fragment-shader color profiles:
-  - Natural (original stream colors without modification);
-  - Blu-ray (enhanced contrast, precise skin tone balance);
-  - Vivid HDR (expanded dynamic range and saturated colors);
-  - Night (warm spectrum with attenuated blue light);
-  - Cinema Film (cool shadows and soft warm highlights);
-  - OLED Deep (deep true blacks without shadow detail clipping).
-- Anti-Flash option to attenuate sudden harsh white flashes during action scenes.
-- Black Level Fix and dynamic Vibrance adjustment.
-- Independent Vignette control in the Fine-Tuning section.
+  - **Natural:** Original stream colors without modification.
+  - **Blu-ray:** Enhanced contrast and calibrated skin tone balance.
+  - **Vivid HDR:** Expanded dynamic range and saturated colors.
+  - **Night:** Warm spectrum with attenuated blue light.
+  - **Cinema Film:** Cool shadows and soft warm highlights.
+  - **OLED Deep:** True deep blacks without shadow detail clipping.
+- **Anti-Flash:** Attenuates sudden harsh white flashes during intense action scenes.
+- **Black Level Fix** and dynamic **Vibrance** adjustment.
+- **Independent Vignette** control in the Fine-Tuning section.
 
 ### 5. Player Controls, Hotkeys & Clean Screenshots
-- Opening & Ending Skip: Ergonomic button positioned vertically centered on the right edge ("Skip (85s)") to skip anime intros and credits instantly.
-- Stealth Auto-Hide: Skip button appears when hovering over its right-center hotspot or directly interacting with it, and smoothly fades out after 1 second of inactivity.
-- Safe Boundary Seek: Automatically prevents seeks from exceeding video duration, leaving safe headroom before the end of the episode.
-- Visual OSD Feedback: Instant on-screen display badge (`+85s`) confirms seek completion directly over the video.
-- Customizable Skip Settings: Toggle switch, range slider (30s–120s, default 85s), and customizable hotkey (default `Alt+X`) in the "Sites & GPU" settings tab.
-- Clean 4K/2K Screenshots: Instant lossless PNG capture directly from the WebGL2 rendering buffer into your Downloads folder without watermarks or player overlays.
-- Customizable screenshot hotkey in the "Sites & GPU" settings tab (defaults to safe `Alt+S` to eliminate conflicts with site navigation) with interactive key combination recording.
-- Dedicated screenshot camera button on the in-player control overlay.
-- Minimalist popup interface supporting AMOLED Black (`#000000`) and Light themes.
-- Independent per-player and per-site activation: processing is toggled explicitly on each player instance and does not bleed into other tabs or domains.
-- Compact on-player overlay with top-right corner hover hotspot: appears when hovering over the control area, stays pinned during interaction and mouse clicks, and hides smoothly after a 1-second timeout once the cursor leaves.
-- Before / After split-screen slider and button only appear on the player if explicitly enabled in extension settings.
-- Domain, full URL, and URL path whitelist filtering.
+- **Opening & Ending Skip:** Ergonomic button positioned vertically centered on the right edge ("Skip (85s)") to skip anime intros and credits instantly.
+- **Stealth Auto-Hide:** Skip button appears when hovering over its right-center hotspot or directly interacting with it, and smoothly fades out after 1 second of inactivity.
+- **Safe Boundary Seek:** Automatically prevents seeks from exceeding video duration, leaving safe headroom before the end of the episode.
+- **Visual OSD Feedback:** Instant on-screen display badge (`+85s`) confirms seek completion directly over the video.
+- **Customizable Skip Settings:** Toggle switch, range slider (30s–120s, default 85s), and customizable hotkey (default `Alt+X`) in the "Sites & GPU" settings tab.
+- **Clean 4K/2K Screenshots:** Instant lossless PNG capture directly from the WebGL2 rendering buffer into your Downloads folder without watermarks or player overlays.
+- **Customizable Hotkeys:** Flexible hotkey bindings with interactive recording and conflict prevention in settings.
+- **Draggable Split-Screen Slider:** Inspect before/after results with a live draggable divider and side labels.
+- **Domain & URL Whitelist Filtering:** Selective activation by domain, URL, or URL path.
 
 ### 6. Internationalization (i18n)
 - Native bilingual support for English and Russian.
-- Automatic locale detection: systems using `ru`, `be`, or `uk` receive the Russian interface; all other system languages (e.g., German, French, Spanish, Japanese, English) default to English as the priority language.
-- Explicit manual language selector available under the "Sites & GPU" settings tab.
+- Automatic locale detection: systems using `ru`, `be`, or `uk` receive the Russian interface; all other system languages default to English.
 - Complete localization across all user touchpoints: extension popup, onboarding GPU benchmark, player overlays ("AniPure: ON/OFF"), split-screen labels, telemetry HUD, and system toast notifications.
 
 ---
 
-## Browser Installation
+## Installation
 
-1. Open the extensions manager in your browser:
+AniPure is compatible with Chromium-based browsers: **Google Chrome**, **Microsoft Edge**, **Brave**, **Opera**, and **Vivaldi**.
+
+1. Download or clone this repository:
+   ```bash
+   git clone https://github.com/nedarixxx/AniPure.git
+   ```
+2. Open the extensions manager in your browser:
    - Google Chrome: `chrome://extensions/`
    - Microsoft Edge: `edge://extensions/`
    - Brave: `brave://extensions/`
-2. Enable **Developer mode** via the toggle switch in the top-right corner.
-3. Click **Load unpacked**.
-4. Select the project root folder (the directory containing `manifest.json`).
-5. Upon initial installation, the hardware diagnostics page automatically opens to benchmark WebGL2 shader execution times on your GPU and recommend the optimal preset.
+3. Enable **Developer mode** via the toggle switch in the top-right corner.
+4. Click **Load unpacked** (Загрузить распакованное расширение).
+5. Select the project root folder (the directory containing `manifest.json`).
+6. Upon installation, the hardware diagnostics page automatically opens to benchmark WebGL2 shader execution times on your GPU and recommend the optimal preset.
 
 ---
 
-## Project Structure
-
-```
-AniPure/
-├── manifest.json              # Extension manifest (Manifest V3)
-├── background.js              # Background service worker (tab and settings lifecycle)
-├── rules.json                 # declarativeNetRequest rules for video CORS unblocking
-├── THIRD_PARTY_NOTICES.md     # Third-party licenses and model acknowledgments
-├── README.md                  # Project documentation in English
-├── README.ru.md               # Project documentation in Russian
-├── icons/                     # Extension icons (16x16, 48x48, 128x128)
-├── src/
-│   ├── shared/
-│   │   ├── i18n.js            # Internationalization engine (en/ru dictionaries, auto-detection)
-│   │   ├── config.js          # Shared configuration, profiles, whitelist, and math utilities
-│   │   └── shaders.js         # WebGL2 GLSL ES 3.00 shader source code
-│   ├── shaders/
-│   │   └── anime4k-models.js  # Precompiled model weights for 14 Anime4K v4 networks
-│   ├── engine/
-│   │   ├── benchmark.js       # GPU hardware diagnostic and benchmarking module
-│   │   ├── cnn-runner.js      # Multi-pass CNN tensor execution engine
-│   │   └── webgl-pipeline.js  # Rendering, texture exchange, and optical flow pipeline
-│   ├── content/
-│   │   ├── content.js         # Content script injected into media player frames
-│   │   └── content.css        # Styles for player overlay, split-handle, and notifications
-│   ├── popup/
-│   │   ├── popup.html         # Settings popup markup
-│   │   ├── popup.css          # Theme styles (AMOLED and Light)
-│   │   └── popup.js           # Popup state management, i18n switcher, and telemetry listener
-│   └── pages/
-│       ├── onboarding.html    # Setup, GPU benchmark, and diagnostics page
-│       ├── onboarding.css     # Diagnostics page styles
-│       └── onboarding.js      # Benchmark orchestration and preset configuration
-├── demo/
-│   └── test-player.html       # Offline test bench with synthetic 720p 24 FPS anime stream
-└── tests/
-    ├── core.test.js           # Unit tests for config, models, whitelist, and i18n
-    └── webgl-e2e.js           # Headless browser WebGL2 E2E test via Chrome DevTools Protocol
-```
-
----
-
-## Testing and Verification
+## Testing & Quality Assurance
 
 ### Unit Tests
 Verifies Manifest V3 structure, GLSL ES 3.00 shader generation across all 14 Anime4K models, aspect ratio and dimension calculations, whitelist matching, i18n locale resolution, and benchmark classification:
@@ -132,13 +126,46 @@ Launches a Chromium instance via Chrome DevTools Protocol (CDP), verifies WebGL2
 node tests/webgl-e2e.js
 ```
 
-### Local Test Player
+### Local Test Bench
 To verify enhancement offline without external streaming platforms, open `demo/test-player.html` in your browser with the extension installed. The page generates a synthetic 720p 24 FPS cel-shaded anime animation suitable for testing edge sharpness, frame interpolation, and split-screen comparison.
 
 ---
 
-## Licenses and Acknowledgments
+## Roadmap
 
-- Anime4K neural network architectures and weights: developed by bloc97, licensed under the MIT License.
-- Contrast Adaptive Sharpening (CAS) algorithm: developed by AMD FidelityFX, licensed under the MIT License.
-- Full license texts are documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- [ ] Firefox (Gecko / WebExtension) compatibility build
+- [ ] User custom GLSL shader script injection
+- [ ] Mouse gesture / custom mouse button hotkey bindings
+- [ ] Experimental WebGPU compute pipeline
+- [ ] Community preset sharing for popular streaming platforms
+
+---
+
+## Contributing
+
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**!
+
+If you have a suggestion that would make this better, please fork the repository and create a pull request. You can also simply open an issue with the tag "enhancement":
+
+1. Fork the Project (`https://github.com/nedarixxx/AniPure/fork`)
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Verify Tests Pass (`node --test tests/core.test.js`)
+5. Push to the Branch (`git push origin feature/AmazingFeature`)
+6. Open a Pull Request
+
+Found a bug or want to request support for a specific anime player? [Open an issue on GitHub](https://github.com/nedarixxx/AniPure/issues)!
+
+---
+
+## Support the Project
+
+If you enjoy using AniPure or find it useful for your anime watching, please consider giving it a star on GitHub! It helps more anime fans discover the project.
+
+---
+
+## Licenses & Acknowledgments
+
+- **Anime4K:** Neural network architectures and weights developed by bloc97, licensed under the [MIT License](https://github.com/bloc97/Anime4K).
+- **AMD FidelityFX CAS:** Contrast Adaptive Sharpening algorithm developed by AMD FidelityFX, licensed under the [MIT License](https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK).
+- Full third-party license notices are documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
