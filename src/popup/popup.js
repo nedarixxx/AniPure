@@ -67,23 +67,42 @@
   };
 
   function persist(patch) {
-    settings = Config.mergeSettings({
-      ...settings,
-      ...patch,
-      customParams: {
-        ...settings.customParams,
-        ...(patch.customParams || {})
-      }
-    });
-    renderUI();
-
     if (hasChrome) {
-      chrome.storage.local.set({
-        anipureSettings: settings,
-        lumascaleSettings: settings
+      chrome.storage.local.get(['anipureSettings', 'lumascaleSettings'], (res) => {
+        const stored = res.anipureSettings || res.lumascaleSettings || {};
+        settings = Config.mergeSettings({
+          ...stored,
+          ...settings,
+          ...patch,
+          customParams: {
+            ...(stored.customParams || {}),
+            ...settings.customParams,
+            ...(patch.customParams || {})
+          }
+        });
+        renderUI();
+        chrome.storage.local.set({
+          anipureSettings: settings,
+          lumascaleSettings: settings
+        });
+        chrome.runtime.sendMessage({ type: 'BROADCAST_SETTINGS', settings }).catch(() => {});
       });
-      chrome.runtime.sendMessage({ type: 'BROADCAST_SETTINGS', settings }).catch(() => {});
     } else {
+      let stored = {};
+      try {
+        stored = JSON.parse(localStorage.getItem('anipureSettings') || '{}');
+      } catch (_) {}
+      settings = Config.mergeSettings({
+        ...stored,
+        ...settings,
+        ...patch,
+        customParams: {
+          ...(stored.customParams || {}),
+          ...settings.customParams,
+          ...(patch.customParams || {})
+        }
+      });
+      renderUI();
       try {
         localStorage.setItem('anipureSettings', JSON.stringify(settings));
         localStorage.setItem('lumascaleSettings', JSON.stringify(settings));
@@ -260,13 +279,22 @@
     settings.whitelist.forEach((item, idx) => {
       const row = document.createElement('div');
       row.className = 'wl-row';
-      row.innerHTML = `
-        <span class="wl-row-text">${escapeHtml(item.value)}</span>
-        <button type="button" class="wl-del" title="${lang === 'ru' ? 'Удалить' : 'Delete'}">×</button>
-      `;
-      row.querySelector('.wl-del').addEventListener('click', () => {
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'wl-row-text';
+      textSpan.textContent = item.value;
+      row.appendChild(textSpan);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'wl-del';
+      delBtn.title = lang === 'ru' ? 'Удалить' : 'Delete';
+      delBtn.textContent = '×';
+      delBtn.addEventListener('click', () => {
         persist({ whitelist: settings.whitelist.filter((_, i) => i !== idx) });
       });
+      row.appendChild(delBtn);
+
       els.wlList.appendChild(row);
     });
   }
@@ -472,6 +500,16 @@
         if (!k || ['Control', 'Alt', 'Shift', 'Meta'].includes(k)) return;
         parts.push(k);
         const combo = parts.join('+');
+        if (combo.toLowerCase() === (settings.hotkeySkip || 'Alt+X').toLowerCase()) {
+          const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
+          if (els.hotkeyHint) {
+            els.hotkeyHint.textContent = lang === 'ru'
+              ? 'Конфликт: эта комбинация уже назначена на пропуск опенинга!'
+              : 'Conflict: combination already assigned to skip opening!';
+          }
+          els.hotkeyScreenshotInput.blur();
+          return;
+        }
         persist({ hotkeyScreenshot: combo });
         els.hotkeyScreenshotInput.value = combo;
         els.hotkeyScreenshotInput.blur();
@@ -549,6 +587,16 @@
         if (!k || ['Control', 'Alt', 'Shift', 'Meta'].includes(k)) return;
         parts.push(k);
         const combo = parts.join('+');
+        if (combo.toLowerCase() === (settings.hotkeyScreenshot || 'Alt+S').toLowerCase()) {
+          const lang = I18n ? I18n.resolveLanguage(settings.language) : 'ru';
+          if (els.hotkeySkipHint) {
+            els.hotkeySkipHint.textContent = lang === 'ru'
+              ? 'Конфликт: эта комбинация уже назначена на скриншот!'
+              : 'Conflict: combination already assigned to screenshot!';
+          }
+          els.hotkeySkipInput.blur();
+          return;
+        }
         persist({ hotkeySkip: combo });
         els.hotkeySkipInput.value = combo;
         els.hotkeySkipInput.blur();

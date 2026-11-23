@@ -13,7 +13,7 @@
 
   const APP_META = {
     name: 'AniPure',
-    version: '0.2.0'
+    version: '0.2.1'
   };
 
   const PERFORMANCE_TIERS = {
@@ -321,6 +321,13 @@
     merged.skipDuration = typeof merged.skipDuration === 'number' ? clamp(Math.round(merged.skipDuration), 10, 180) : 85;
     if (typeof merged.hotkeySkip !== 'string' || !merged.hotkeySkip.trim()) {
       merged.hotkeySkip = 'Alt+X';
+    }
+    if (merged.hotkeySkip.trim().toLowerCase() === merged.hotkeyScreenshot.trim().toLowerCase()) {
+      if (src.hotkeySkip && !src.hotkeyScreenshot) {
+        merged.hotkeySkip = merged.hotkeyScreenshot.toLowerCase() === 'alt+x' ? 'Alt+O' : 'Alt+X';
+      } else {
+        merged.hotkeyScreenshot = merged.hotkeySkip.toLowerCase() === 'alt+s' ? 'Alt+P' : 'Alt+S';
+      }
     }
     const validLanguages = ['auto', 'en', 'ru'];
     if (!validLanguages.includes(merged.language)) {

@@ -10,7 +10,7 @@ const Shaders = require('../src/shared/shaders.js');
 const Models = require('../src/shaders/anime4k-models.js');
 const CnnRunner = require('../src/engine/cnn-runner.js');
 
-test('AniPure v0.2.0 Core & Anime4K CNN Unit Tests', async (t) => {
+test('AniPure v0.2.1 Core & Anime4K CNN Unit Tests', async (t) => {
   await t.test('TC-01: Manifest V3 structure, rules.json (CORS) and all files exist', () => {
     const rootDir = path.resolve(__dirname, '..');
     const manifest = JSON.parse(fs.readFileSync(path.join(rootDir, 'manifest.json'), 'utf8'));
