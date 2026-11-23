@@ -416,6 +416,9 @@ async function run() {
     if (!videoCheck.skipCheck.osdShown || !videoCheck.skipCheck.osdText.includes('+85')) {
       throw new Error('Skip OSD feedback badge failed to appear: ' + JSON.stringify(videoCheck.skipCheck));
     }
+    if (Math.round(videoCheck.skipCheck.timeAfterSkip - videoCheck.skipCheck.timeBeforeSkip) !== 85) {
+      throw new Error('Skip button did not advance video currentTime by 85s: ' + JSON.stringify(videoCheck.skipCheck));
+    }
     if (videoCheck.displayWhenOn === 'none' || videoCheck.canvasW < 1920) {
       throw new Error('WebGL2 Anime4K canvas did not upscale properly: ' + JSON.stringify(videoCheck));
     }

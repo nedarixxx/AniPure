@@ -8,6 +8,17 @@
 
   let currentSettings = Config.mergeSettings(null);
   const attachedVideos = new Map(); // video -> controller
+  let lastInteractedCtrl = null;
+  let lastSkipTimestamp = 0;
+
+  function markUserInteraction(ctrl) {
+    lastInteractedCtrl = ctrl;
+    if (isExtensionContextValid()) {
+      try {
+        chrome.runtime.sendMessage({ type: 'PLAYER_INTERACTION' }).catch(() => {});
+      } catch (_) {}
+    }
+  }
 
   function isAllowedOnThisPage(settings) {
     return Config.matchesWhitelist(window.location.href, settings.whitelistEnabled, settings.whitelist);
@@ -149,12 +160,22 @@
       this.skipBtn.title = I18n
         ? I18n.t('skipBtnTitle', lang, { sec: skipSec, key: skipHotkey })
         : `Пропустить опенинг / эндинг (${skipSec} сек) [${skipHotkey}]`;
-      this.skipBtn.innerHTML = `
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M2 3.5l6 4.5-6 4.5V3.5zm7 0l6 4.5-6 4.5V3.5z"/>
-        </svg>
-        <span class="ls-skip-text">${I18n ? I18n.t('skipBtn', lang, { sec: skipSec }) : `Пропуск (${skipSec} сек)`}</span>
-      `;
+
+      const skipSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      skipSvg.setAttribute('width', '13');
+      skipSvg.setAttribute('height', '13');
+      skipSvg.setAttribute('viewBox', '0 0 16 16');
+      skipSvg.setAttribute('fill', 'currentColor');
+      const skipPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      skipPath.setAttribute('d', 'M2 3.5l6 4.5-6 4.5V3.5zm7 0l6 4.5-6 4.5V3.5z');
+      skipSvg.appendChild(skipPath);
+      this.skipBtn.appendChild(skipSvg);
+
+      const skipTextSpan = document.createElement('span');
+      skipTextSpan.className = 'ls-skip-text';
+      skipTextSpan.textContent = I18n ? I18n.t('skipBtn', lang, { sec: skipSec }) : `Пропуск (${skipSec} сек)`;
+      this.skipBtn.appendChild(skipTextSpan);
+
       (this.playerRoot || this.host).appendChild(this.skipBtn);
 
       // OSD Feedback Badge
@@ -165,14 +186,21 @@
 
     _bindEvents() {
       // Prevent player interaction (pause/seek) when clicking overlay controls
-      this.controlsEl.addEventListener('mousedown', (e) => e.stopPropagation());
+      this.controlsEl.addEventListener('mousedown', (e) => {
+        markUserInteraction(this);
+        e.stopPropagation();
+      });
       this.controlsEl.addEventListener('mouseup', (e) => e.stopPropagation());
-      this.controlsEl.addEventListener('click', (e) => e.stopPropagation());
+      this.controlsEl.addEventListener('click', (e) => {
+        markUserInteraction(this);
+        e.stopPropagation();
+      });
 
       const toggleBtn = this.controlsEl.querySelector('[data-act="toggle"]');
       const splitBtn = this.controlsEl.querySelector('[data-act="split"]');
 
       toggleBtn.addEventListener('click', (e) => {
+        markUserInteraction(this);
         e.stopPropagation();
         e.preventDefault();
         if (typeof toggleBtn.blur === 'function') toggleBtn.blur();
@@ -182,6 +210,7 @@
       });
 
       splitBtn.addEventListener('click', (e) => {
+        markUserInteraction(this);
         e.stopPropagation();
         e.preventDefault();
         if (typeof splitBtn.blur === 'function') splitBtn.blur();
@@ -192,6 +221,7 @@
       const shotBtn = this.controlsEl.querySelector('[data-act="screenshot"]');
       if (shotBtn) {
         shotBtn.addEventListener('click', (e) => {
+          markUserInteraction(this);
           e.stopPropagation();
           e.preventDefault();
           if (typeof shotBtn.blur === 'function') shotBtn.blur();
@@ -202,24 +232,29 @@
 
       // Skip Opening button events
       if (this.skipBtn) {
-        this.skipBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+        this.skipBtn.addEventListener('mousedown', (e) => {
+          markUserInteraction(this);
+          e.stopPropagation();
+        });
         this.skipBtn.addEventListener('mouseup', (e) => e.stopPropagation());
         this.skipBtn.addEventListener('click', (e) => {
+          markUserInteraction(this);
           e.stopPropagation();
           e.preventDefault();
           if (typeof this.skipBtn.blur === 'function') this.skipBtn.blur();
           this.skipOpening();
-          this._isPointerOverSkip = true;
           this.skipBtn.classList.add('ls-visible');
           this._scheduleHideOverlay(1000);
         });
 
         this.skipBtn.addEventListener('mouseenter', () => {
+          markUserInteraction(this);
           this._isPointerOverSkip = true;
           this._cancelHideTimer();
           this.skipBtn.classList.add('ls-visible');
         });
         this.skipBtn.addEventListener('mousemove', (e) => {
+          markUserInteraction(this);
           e.stopPropagation();
           this._isPointerOverSkip = true;
           this._cancelHideTimer();
@@ -282,12 +317,14 @@
 
       // Direct hover on controls: stays visible while hovering, cancels any hide timer
       this.controlsEl.addEventListener('mouseenter', () => {
+        markUserInteraction(this);
         this._isPointerOverControls = true;
         this._cancelHideTimer();
         this.controlsEl.classList.add('ls-visible');
       });
       this.controlsEl.addEventListener('mousemove', (e) => {
         e.stopPropagation();
+        markUserInteraction(this);
         this._isPointerOverControls = true;
         this._cancelHideTimer();
         this.controlsEl.classList.add('ls-visible');
@@ -302,6 +339,7 @@
       // While pointer is in the hotspot or over buttons, it stays visible indefinitely.
       // When pointer leaves, it smoothly hides after exactly 1 second.
       const handlePlayerMove = (e) => {
+        markUserInteraction(this);
         if (this._isPointerOverControls || this._isPointerOverSkip) {
           this._cancelHideTimer();
           return;
@@ -654,34 +692,68 @@
     }
 
     skipOpening() {
-      if (!this.video) return;
+      if (!this.video || typeof this.video.currentTime !== 'number') return false;
+      if (this.video.readyState < 1 && !this.video.srcObject) return false;
+
+      const now = Date.now();
+      if (now - lastSkipTimestamp < 400) {
+        return false;
+      }
+
       const sec = typeof currentSettings.skipDuration === 'number' ? currentSettings.skipDuration : 85;
+      const current = this.video.currentTime;
       const duration = Number.isFinite(this.video.duration) && this.video.duration > 0
         ? this.video.duration
         : Infinity;
 
-      // Safe seek: never exceed duration, leave 0.5s if near the end
-      const maxTime = Number.isFinite(duration) ? Math.max(0, duration - 0.5) : Infinity;
-      const targetTime = Math.min(this.video.currentTime + sec, maxTime);
+      // Safe seek: never exceed duration, leave 0.5s if near the end, and never rewind backwards
+      const maxTime = Number.isFinite(duration) ? Math.max(current, duration - 0.5) : Infinity;
+      const targetTime = Math.max(current, Math.min(current + sec, maxTime));
+      const actualDelta = Math.round(targetTime - current);
 
-      this.video.currentTime = targetTime;
+      if (actualDelta <= 0) {
+        return false;
+      }
+
+      try {
+        this.video.currentTime = targetTime;
+      } catch (_) {
+        return false;
+      }
+
+      lastSkipTimestamp = now;
+
       if (this.pipeline && this.active) {
         this.pipeline.refreshCurrentFrame();
       }
 
-      this._showOsdBadge(sec);
+      this._showOsdBadge(actualDelta);
+      return true;
     }
 
     _showOsdBadge(sec) {
       if (!this.osdBadge) return;
       const lang = I18n ? I18n.resolveLanguage(currentSettings.language) : 'ru';
       const osdText = I18n ? I18n.t('skipOsd', lang, { sec }) : `+${sec} ${lang === 'ru' ? 'сек' : 's'}`;
-      this.osdBadge.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M2 3.5l6 4.5-6 4.5V3.5zm7 0l6 4.5-6 4.5V3.5z"/>
-        </svg>
-        <span>${escapeHtml(osdText)}</span>
-      `;
+
+      while (this.osdBadge.firstChild) {
+        this.osdBadge.removeChild(this.osdBadge.firstChild);
+      }
+
+      const osdSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      osdSvg.setAttribute('width', '18');
+      osdSvg.setAttribute('height', '18');
+      osdSvg.setAttribute('viewBox', '0 0 16 16');
+      osdSvg.setAttribute('fill', 'currentColor');
+      const osdPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      osdPath.setAttribute('d', 'M2 3.5l6 4.5-6 4.5V3.5zm7 0l6 4.5-6 4.5V3.5z');
+      osdSvg.appendChild(osdPath);
+      this.osdBadge.appendChild(osdSvg);
+
+      const osdSpan = document.createElement('span');
+      osdSpan.textContent = osdText;
+      this.osdBadge.appendChild(osdSpan);
+
       this.osdBadge.classList.remove('ls-hidden');
       this.osdBadge.classList.add('ls-show');
 
@@ -699,6 +771,9 @@
     }
 
     destroy() {
+      if (lastInteractedCtrl === this) {
+        lastInteractedCtrl = null;
+      }
       this._cancelHideTimer();
       if (this._osdTimer) clearTimeout(this._osdTimer);
       if (this.resizeObserver) this.resizeObserver.disconnect();
@@ -849,6 +924,16 @@
   }
 
   function triggerActiveScreenshot() {
+    if (lastInteractedCtrl && lastInteractedCtrl.active && !lastInteractedCtrl.video.ended) {
+      lastInteractedCtrl.captureScreenshot();
+      return true;
+    }
+    for (const ctrl of attachedVideos.values()) {
+      if (ctrl.active && !ctrl.video.ended) {
+        ctrl.captureScreenshot();
+        return true;
+      }
+    }
     for (const ctrl of attachedVideos.values()) {
       if (ctrl.active) {
         ctrl.captureScreenshot();
@@ -860,16 +945,59 @@
 
   function triggerActiveSkipOp() {
     if (!currentSettings.skipOpEnabled) return false;
-    // Prefer playing video if available
-    for (const ctrl of attachedVideos.values()) {
-      if (ctrl.video && !ctrl.video.paused) {
-        ctrl.skipOpening();
-        return true;
+    const now = Date.now();
+    if (now - lastSkipTimestamp < 400) {
+      return false; // Debounce rapid / double triggers
+    }
+
+    const candidates = [];
+
+    // 1. If user recently interacted with a controller and its video is valid and not ended
+    if (lastInteractedCtrl && attachedVideos.has(lastInteractedCtrl.video)) {
+      const v = lastInteractedCtrl.video;
+      if (document.contains(v) && v.isConnected && !v.ended && (v.readyState >= 1 || v.srcObject || !v.paused)) {
+        candidates.push(lastInteractedCtrl);
       }
     }
+
+    // 2. Currently playing videos (not ended), prioritizing audible then largest screen area
+    const playing = [];
     for (const ctrl of attachedVideos.values()) {
-      if (ctrl.video) {
-        ctrl.skipOpening();
+      if (candidates.includes(ctrl)) continue;
+      const v = ctrl.video;
+      if (v && !v.paused && !v.ended && (v.readyState >= 1 || v.srcObject)) {
+        const rect = v.getBoundingClientRect();
+        const area = rect.width * rect.height;
+        const isAudible = !v.muted && v.volume > 0;
+        playing.push({ ctrl, area, isAudible });
+      }
+    }
+    if (playing.length > 0) {
+      playing.sort((a, b) => {
+        if (a.isAudible !== b.isAudible) return b.isAudible ? 1 : -1;
+        return b.area - a.area;
+      });
+      playing.forEach(p => candidates.push(p.ctrl));
+    }
+
+    // 3. Fallback: other attached videos (not ended) with active pipeline or largest visible area
+    const others = [];
+    for (const ctrl of attachedVideos.values()) {
+      if (candidates.includes(ctrl)) continue;
+      const v = ctrl.video;
+      if (v && !v.ended && (v.readyState >= 1 || v.srcObject)) {
+        const rect = v.getBoundingClientRect();
+        const area = rect.width * rect.height + (ctrl.active ? 100000 : 0);
+        others.push({ ctrl, area });
+      }
+    }
+    others.sort((a, b) => b.area - a.area);
+    others.forEach(o => candidates.push(o.ctrl));
+
+    // Try candidates in order: first successful seek handles the request
+    for (const ctrl of candidates) {
+      if (ctrl.skipOpening()) {
+        lastInteractedCtrl = ctrl;
         return true;
       }
     }
@@ -877,7 +1005,11 @@
   }
 
   window.addEventListener('message', (e) => {
-    if (e.data && e.data.type === 'ANIPURE_EXECUTE_SCREENSHOT') {
+    // In extension mode, frame/tab messaging is handled via chrome.runtime, never untrusted postMessage
+    if (isExtensionContextValid()) return;
+    if (!e.data || typeof e.data !== 'object') return;
+
+    if (e.data.type === 'ANIPURE_EXECUTE_SCREENSHOT') {
       const done = triggerActiveScreenshot();
       if (!done && window.frames.length > 0) {
         for (let i = 0; i < window.frames.length; i++) {
@@ -887,7 +1019,7 @@
         }
       }
     }
-    if (e.data && e.data.type === 'ANIPURE_EXECUTE_SKIP_OP') {
+    if (e.data.type === 'ANIPURE_EXECUTE_SKIP_OP') {
       const done = triggerActiveSkipOp();
       if (!done && window.frames.length > 0) {
         for (let i = 0; i < window.frames.length; i++) {
@@ -950,22 +1082,29 @@
   }
 
   window.addEventListener('keydown', (e) => {
+    if (e.repeat) return; // Prevent repeated seeks or rapid firing when key is held down
+
     const target = e.target;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
       return;
     }
+
     const desiredHotkey = currentSettings.hotkeyScreenshot || 'Alt+S';
     if (matchesCombo(e, desiredHotkey)) {
-      e.preventDefault();
-      e.stopPropagation();
-
       const executedLocally = triggerActiveScreenshot();
-      if (!executedLocally) {
-        if (isExtensionContextValid()) {
-          try {
-            chrome.runtime.sendMessage({ type: 'TRIGGER_SCREENSHOT' }).catch(() => {});
-          } catch (_) {}
-        }
+      if (executedLocally) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (isExtensionContextValid()) {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          chrome.runtime.sendMessage({ type: 'TRIGGER_SCREENSHOT' }).catch(() => {});
+        } catch (_) {}
+      } else {
+        // Standalone test/demo page mode
         try {
           for (let i = 0; i < window.frames.length; i++) {
             try {
@@ -982,16 +1121,20 @@
 
     const desiredSkipHotkey = currentSettings.hotkeySkip || 'Alt+X';
     if (currentSettings.skipOpEnabled && matchesCombo(e, desiredSkipHotkey)) {
-      e.preventDefault();
-      e.stopPropagation();
-
       const executedLocally = triggerActiveSkipOp();
-      if (!executedLocally) {
-        if (isExtensionContextValid()) {
-          try {
-            chrome.runtime.sendMessage({ type: 'TRIGGER_SKIP_OP' }).catch(() => {});
-          } catch (_) {}
-        }
+      if (executedLocally) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (isExtensionContextValid()) {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          chrome.runtime.sendMessage({ type: 'TRIGGER_SKIP_OP' }).catch(() => {});
+        } catch (_) {}
+      } else {
+        // Standalone test/demo page mode
         try {
           for (let i = 0; i < window.frames.length; i++) {
             try {

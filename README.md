@@ -4,7 +4,7 @@
 
 AniPure is a Manifest V3 browser extension for Chromium-based browsers (Google Chrome, Microsoft Edge, Brave, Opera, Vivaldi) that provides real-time video upscaling and enhancement from 720p to 1080p, 2K, and 4K using WebGL2 shaders and Anime4K v4 neural network models.
 
-Version: 0.2.0
+Version: 0.2.1
 
 ---
 

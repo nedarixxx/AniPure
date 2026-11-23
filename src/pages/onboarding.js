@@ -101,16 +101,26 @@
     settings.whitelist.forEach((item, idx) => {
       const row = document.createElement('div');
       row.className = 'wl-item';
-      row.innerHTML = `
-        <div class="wl-item-val">
-          <span class="wl-type">[${typeLabels[item.type] || item.type}]</span>${escapeHtml(item.value)}
-        </div>
-        <button type="button" class="btn btn-sm" data-remove-idx="${idx}">${delText}</button>
-      `;
-      row.querySelector('[data-remove-idx]').addEventListener('click', () => {
+
+      const valDiv = document.createElement('div');
+      valDiv.className = 'wl-item-val';
+      const typeSpan = document.createElement('span');
+      typeSpan.className = 'wl-type';
+      typeSpan.textContent = `[${typeLabels[item.type] || item.type}] `;
+      valDiv.appendChild(typeSpan);
+      valDiv.appendChild(document.createTextNode(item.value));
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'btn btn-sm';
+      delBtn.textContent = delText;
+      delBtn.addEventListener('click', () => {
         const next = settings.whitelist.filter((_, i) => i !== idx);
         persist({ whitelist: next });
       });
+
+      row.appendChild(valDiv);
+      row.appendChild(delBtn);
       els.whitelistContainer.appendChild(row);
     });
   }

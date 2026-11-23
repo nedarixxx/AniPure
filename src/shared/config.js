@@ -13,7 +13,7 @@
 
   const APP_META = {
     name: 'AniPure',
-    version: '0.2.0'
+    version: '0.2.1'
   };
 
   const PERFORMANCE_TIERS = {

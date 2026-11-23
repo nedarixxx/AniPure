@@ -215,6 +215,19 @@
 
       const video = document.getElementById('testVideo');
       video.srcObject = srcCanvas.captureStream(24);
+      let simCurrentTime = 10.0;
+      Object.defineProperty(video, 'currentTime', {
+        get() { return simCurrentTime; },
+        set(val) {
+          simCurrentTime = Number(val);
+          video.dispatchEvent(new Event('seeked'));
+        },
+        configurable: true
+      });
+      Object.defineProperty(video, 'duration', {
+        get() { return 1440; },
+        configurable: true
+      });
       video.play().catch(() => {});
 
       const getApi = () => window.AniPureContentApi || window.LumaScaleContentApi;
